@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import Button from '../btns/Button'
-import { NavLink } from 'react-router-dom'
+import { NavLink, Link } from 'react-router-dom'
 import { RiRecycleFill, RiMenuLine, RiCloseLine } from 'react-icons/ri'
 const Header = () => {
     const [menuOpen, setMenuOpen] = useState(false)
@@ -55,8 +55,12 @@ const Header = () => {
                     </div>
 
                     <div className="hidden md:flex">
-                        <Button className="font-bold" props="Entrar" />
-                        <Button className="bg-green-800 text-white font-bold" props="Cadastrar" />
+                        <Link to="/login">
+                        <Button className="font-bold" children="Entrar" />
+                        </Link>
+                        <Link to="/register">
+                        <Button className="bg-green-800 text-white font-bold" children="Cadastrar" />
+                        </Link>
                     </div>
                     {/* BOTÃO MENU MOBILE */}
                     <button
@@ -130,15 +134,12 @@ const Header = () => {
                         {/* BOTÕES */}
                         <div className="mt-5 flex gap-2">
 
-                            <Button
-                                className="flex-1 font-bold"
-                                props="Entrar"
-                            />
-
-                            <Button
-                                className="flex-1 bg-green-800 font-bold text-white"
-                                props="Cadastrar"
-                            />
+                            <Link to="/login">
+                                <Button className="font-bold">Entrar</Button>
+                            </Link>
+                            <Link to="/register">
+                                <Button className="bg-green-800 text-white font-bold">Cadastrar</Button>
+                            </Link>
 
                         </div>
 
