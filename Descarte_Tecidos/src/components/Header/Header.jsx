@@ -56,10 +56,10 @@ const Header = () => {
 
                     <div className="hidden md:flex">
                         <Link to="/login">
-                        <Button className="font-bold" children="Entrar" />
+                            <Button className="font-bold" children="Entrar" />
                         </Link>
                         <Link to="/register">
-                        <Button className="bg-green-800 text-white font-bold" children="Cadastrar" />
+                            <Button className="bg-green-800 text-white font-bold" children="Cadastrar" />
                         </Link>
                     </div>
                     {/* BOTÃO MENU MOBILE */}

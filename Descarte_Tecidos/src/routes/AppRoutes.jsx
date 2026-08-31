@@ -7,6 +7,7 @@ import Campaigns from "../pages/main/campaigns/Campaigns.jsx";
 import Content from "../pages/main/content/Content.jsx";
 import Login from "../pages/auth/login/Login.jsx";
 import Register from "../pages/auth/register/Register.jsx";
+import PasswordReset from "../pages/auth/password-reset/PasswordReset.jsx";
 
 function AppRoutes() {
   return (
@@ -18,6 +19,7 @@ function AppRoutes() {
       <Route path="/conteudos" element={<Content />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/redefinir-senha" element={<PasswordReset />} />
     </Routes>
   );
 }
