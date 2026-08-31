@@ -5,9 +5,40 @@ import { Link } from 'react-router-dom'
 import Button from '../../../components/btns/Button'
 import { RiMapPinLine } from 'react-icons/ri'
 import heroFabrics from '../../../assets/images/hero-fabrics.jpg'
+import { RiRecycleLine } from 'react-icons/ri'
+import { RiHeartFill } from 'react-icons/ri'
+import { RiLeafLine } from 'react-icons/ri'
+import { RiEarthLine } from 'react-icons/ri'
 
 
 const Home = () => {
+  const pillars = [
+    {
+      id: 1,
+      icon: <RiRecycleLine className="text-4xl text-green-600" />,
+      title: 'Reduz o impacto ambiental',
+      description: 'Diminui o lixo têxtil e a poluição do planeta.',
+    },
+    {
+      id: 2,
+      icon: <RiHeartFill className="text-4xl text-red-500" />,
+      title: 'Transforma vidas',
+      description: 'Suas doações aquecem quem mais precisa.',
+    },
+    {
+      id: 3,
+      icon: <RiLeafLine className="text-4xl text-green-600" />,
+      title: 'Fortalece a economia circular',
+      description: 'Tecidos podem ser reutilizados e reciclados.',
+    },
+    {
+      id: 4,
+      icon: <RiEarthLine className="text-4xl text-blue-500" />,
+      title: 'Construímos um futuro mais consciente',
+      description: 'Pequenas atitudes, grandes mudanças.',
+    },
+  ]
+
   return (
     <>
       <div className="flex min-h-screen flex-col">
@@ -51,8 +82,28 @@ const Home = () => {
                 className="w-full h-full object-cover"
               />
             </div>
-
           </section>
+          {/* SEÇÃO DOS 4 PILARES */}
+          <section className="bg-white py-16">
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+                {pillars.map((pillar) => (
+                  <div key={pillar.id} className="flex flex-col items-center">
+                    <div className="mb-4">
+                      {pillar.icon}
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">
+                      {pillar.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      {pillar.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
 
         </main>
 
