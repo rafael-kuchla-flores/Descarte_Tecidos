@@ -4,6 +4,9 @@ const Login = () => {
   return (
     <>
         <Header />
+        <main>
+          
+        </main>
     </>
   )
 }
