@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import Button from '../../../components/btns/Button'
 import { RiMapPinLine } from 'react-icons/ri'
 import heroFabrics from '../../../assets/images/hero-fabrics.jpg'
+import clothesImage from '../../../assets/images/image.png'
 import { RiRecycleLine } from 'react-icons/ri'
 import { RiHeartFill } from 'react-icons/ri'
 import { RiLeafLine } from 'react-icons/ri'
@@ -47,7 +48,7 @@ const Home = () => {
         <main className="flex-1">
           <section className="bg-[#0f382c] grid grid-cols-1 lg:grid-cols-2">
 
-            {/* COLUNA 1 (Esquerda: Textos + Botões) */}
+            {/* COLUNA 1*/}
             <div className="p-8 md:p-12 lg:p-16 flex flex-col justify-center">
               <h1 className='text-3xl md:text-5xl font-bold text-white leading-tight'>
                 Dê um novo destino para os seus tecidos.
@@ -57,7 +58,7 @@ const Home = () => {
                 Juntos por uma moda mais consciente e um planeta mais sustentável.
               </p>
 
-              {/* Os botões entram AQUI, dentro da coluna 1 */}
+              {/* Os botões entram AQUI*/}
               <div className="flex flex-wrap gap-4">
                 <Link to="/pontos-de-coleta">
                   <Button className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-semibold text-[#133e33] hover:bg-gray-100 transition">
@@ -74,7 +75,7 @@ const Home = () => {
               </div>
             </div>
 
-            {/* COLUNA 2 (Direita: Imagem dos Tecidos) */}
+            {/* COLUNA 2 */}
             <div className="w-full h-full min-h-[300px] lg:min-h-[450px]">
               <img
                 src={heroFabrics}
@@ -103,6 +104,49 @@ const Home = () => {
               </div>
             </div>
           </section>
+
+          {/* SEÇÃO: CAMPANHA EM DESTAQUE */}
+          <section className="bg-gray-50 py-16">
+            <div className="max-w-7xl mx-auto px-6">
+
+              {/* Bloco de Destaque */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center p-6 md:p-8 rounded-2xl">
+
+                {/* Coluna da Imagem */}
+                <div className="overflow-hidden rounded-xl h-64 md:h-80">
+                  <img
+                    src={clothesImage}
+                    alt="Campanha do Agasalho"
+                    className="w-full h-full object-cover rounded-2xl"
+                  />
+                </div>
+
+                {/* Coluna dos Detalhes e Ação */}
+                <div className="flex flex-col justify-center items-start">
+                  <span className="text-xs md:text-sm font-bold uppercase tracking-wider text-green-800">
+                    Campanha em Destaque
+                  </span>
+
+                  <h2 className="text-2xl md:text-3xl font-bold text-[#0f382c] mt-2 mb-4">
+                    Campanha do Agasalho 2026
+                  </h2>
+
+                  <p className="text-gray-600 text-base leading-relaxed mb-6">
+                    Doe roupas e aqueça o inverno de quem mais precisa. Pontos de coleta em toda a região.
+                  </p>
+
+                  <Link to="/campanhas">
+                    <Button className="inline-flex items-center gap-2 rounded-full bg-[#0f382c] px-6 py-3 font-semibold text-white hover:bg-[#154d3d] transition">
+                      <span>Saiba mais</span>
+                    </Button>
+                  </Link>
+                </div>
+
+              </div>
+
+            </div>
+          </section>
+
 
 
         </main>
