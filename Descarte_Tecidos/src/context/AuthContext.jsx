@@ -5,50 +5,71 @@ export const AuthContext = createContext()
 
 const parseJwt = (token) => {
   try {
-    return JSON.parse(atob(token.split('.')[1]));
-  } catch (e) {
-    return null;
+    return JSON.parse(atob(token.split('.')[1]))
+  } catch (error) {
+    return null
   }
-};
+}
 
 const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(localStorage.getItem('token'))
+  const [token, setToken] = useState(
+    localStorage.getItem('token')
+  )
+
   const [user, setUser] = useState(
     JSON.parse(localStorage.getItem('user')) || null
   )
+
   const [loading, setLoading] = useState(true)
 
   const login = async (email, password) => {
-    // 1. Faz o login e pega APENAS o token
+    // Faz login
     const data = await authService.login(email, password)
+
     const newToken = data.token
 
+    // Salva token
     localStorage.setItem('token', newToken)
     setToken(newToken)
 
+    // Lê os dados do JWT
     const tokenData = parseJwt(newToken)
-    
-    console.log("Dados que vieram escondidos dentro do token:", tokenData)
 
+    console.log('Dados do token:', tokenData)
 
-    const userRole = tokenData?.role || tokenData?.roles || tokenData?.authorities || 'user';
-    
+    // Backend envia roles como array
+    const role =
+      tokenData?.roles?.[0] ||
+      tokenData?.role ||
+      tokenData?.authorities?.[0] ||
+      null
+
     const userData = {
-      email: tokenData?.sub || email, 
-      role: userRole,
-      name: tokenData?.name || 'Administrador'
+      id: tokenData?.id,
+      name: tokenData?.name,
+      email: tokenData?.sub || email,
+      role: role,
     }
-    
-    localStorage.setItem('user', JSON.stringify(userData))
+
+    console.log('Usuário autenticado:', userData)
+
+    localStorage.setItem(
+      'user',
+      JSON.stringify(userData)
+    )
+
     setUser(userData)
 
-    return { token: newToken, user: userData }
+    return {
+      token: newToken,
+      user: userData,
+    }
   }
 
   const logout = () => {
     localStorage.removeItem('token')
-    localStorage.removeItem('user') 
-    
+    localStorage.removeItem('user')
+
     setToken(null)
     setUser(null)
   }

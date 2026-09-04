@@ -16,7 +16,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-const handleLogin = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
     setError('')
 
@@ -29,12 +29,8 @@ const handleLogin = async (e) => {
       setLoading(true)
 
       const data = await login(email, senha)
-      
-      const rawRole = data?.user?.role || data?.role || '';
-      
-      const userRole = String(rawRole).toLowerCase();
 
-      if (userRole.includes('admin')) {
+      if (data.user.role === 'ADMIN') {
         navigate('/admin')
       } else {
         navigate('/')
@@ -42,6 +38,7 @@ const handleLogin = async (e) => {
 
     } catch (error) {
       console.error(error)
+
       setError(
         error.data?.message ||
         'E-mail ou senha inválidos.'
@@ -50,10 +47,10 @@ const handleLogin = async (e) => {
       setLoading(false)
     }
   }
-  
+
   return (
     <>
-    <Header />
+      <Header />
 
       <main className="min-h-screen w-full flex flex-col lg:flex-row">
 
