@@ -8,6 +8,7 @@ import Content from "../pages/main/content/Content.jsx";
 import Login from "../pages/auth/login/Login.jsx";
 import Register from "../pages/auth/register/Register.jsx";
 import PasswordReset from "../pages/auth/password-reset/PasswordReset.jsx";
+import NewPassword from "../pages/auth/password-reset/NewPassword.jsx";
 
 function AppRoutes() {
   return (
@@ -20,6 +21,7 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/redefinir-senha" element={<PasswordReset />} />
+       <Route path="/redefinir-senha/nova" element={<NewPassword />} />
     </Routes>
   );
 }
