@@ -1,12 +1,14 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import Header from '../../../components/Header/Header'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { FiEye, FiEyeOff } from 'react-icons/fi'
 import plantalogin from '../../../assets/icons/plantalogin.png'
 import CustomInput from '../../../components/custominput/CustomInput'
+import useAuth from '../../../hooks/useAuth'
 
 const Login = () => {
   const navigate = useNavigate()
+  const { login } = useAuth()
 
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
@@ -26,10 +28,12 @@ const Login = () => {
 
     try {
       setLoading(true)
+      const user = await login(email, senha)
+      navigate(user.role?.replace('ROLE_', '') === 'ADMIN' ? '/admin' : '/')
 
     } catch (error) {
       setError(
-        error.response?.data?.message ||
+        error.message ||
         'E-mail ou senha inválidos.'
       )
     } finally {

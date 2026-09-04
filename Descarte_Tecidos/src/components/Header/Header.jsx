@@ -1,9 +1,11 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import Button from '../btns/Button'
 import { NavLink, Link } from 'react-router-dom'
 import { RiRecycleFill, RiMenuLine, RiCloseLine } from 'react-icons/ri'
+import useAuth from '../../hooks/useAuth'
 const Header = () => {
     const [menuOpen, setMenuOpen] = useState(false)
+    const { user, logout } = useAuth()
 
     const linkClass = ({ isActive }) =>
         `relative pb-1 transition-colors
@@ -55,12 +57,18 @@ const Header = () => {
                     </div>
 
                     <div className="hidden md:flex">
-                        <Link to="/login">
-                            <Button className="font-bold" children="Entrar" />
-                        </Link>
-                        <Link to="/register">
-                            <Button className="bg-green-800 text-white font-bold" children="Cadastrar" />
-                        </Link>
+                        {user ? (
+                            <Button className="font-bold" onClick={logout}>Sair</Button>
+                        ) : (
+                            <>
+                                <Link to="/login">
+                                    <Button className="font-bold" children="Entrar" />
+                                </Link>
+                                <Link to="/register">
+                                    <Button className="bg-green-800 text-white font-bold" children="Cadastrar" />
+                                </Link>
+                            </>
+                        )}
                     </div>
                     {/* BOTÃO MENU MOBILE */}
                     <button
@@ -133,13 +141,18 @@ const Header = () => {
 
                         {/* BOTÕES */}
                         <div className="mt-5 flex gap-2">
-
-                            <Link to="/login">
-                                <Button className="font-bold">Entrar</Button>
-                            </Link>
-                            <Link to="/register">
-                                <Button className="bg-green-800 text-white font-bold">Cadastrar</Button>
-                            </Link>
+                            {user ? (
+                                <Button className="font-bold" onClick={logout}>Sair</Button>
+                            ) : (
+                                <>
+                                    <Link to="/login">
+                                        <Button className="font-bold">Entrar</Button>
+                                    </Link>
+                                    <Link to="/register">
+                                        <Button className="bg-green-800 text-white font-bold">Cadastrar</Button>
+                                    </Link>
+                                </>
+                            )}
 
                         </div>
 
