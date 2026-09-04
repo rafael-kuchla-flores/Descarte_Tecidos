@@ -4,8 +4,10 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { FiEye, FiEyeOff } from 'react-icons/fi'
 import plantalogin from '../../../assets/icons/plantalogin.png'
 import CustomInput from '../../../components/custominput/CustomInput'
+import { useAuth } from '../../../hooks/useAuth'
 
 const Login = () => {
+  const { login } = useAuth()
   const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
@@ -14,9 +16,8 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleLogin = async (e) => {
+const handleLogin = async (e) => {
     e.preventDefault()
-
     setError('')
 
     if (!email || !senha) {
@@ -27,16 +28,29 @@ const Login = () => {
     try {
       setLoading(true)
 
+      const data = await login(email, senha)
+      
+      const rawRole = data?.user?.role || data?.role || '';
+      
+      const userRole = String(rawRole).toLowerCase();
+
+      if (userRole.includes('admin')) {
+        navigate('/admin')
+      } else {
+        navigate('/')
+      }
+
     } catch (error) {
+      console.error(error)
       setError(
-        error.response?.data?.message ||
+        error.data?.message ||
         'E-mail ou senha inválidos.'
       )
     } finally {
       setLoading(false)
     }
   }
-
+  
   return (
     <>
     <Header />
