@@ -1,4 +1,5 @@
 import React from 'react'
+import { useState } from 'react'
 import Header from '../../../components/header/Header'
 import Footer from '../../../components/footer/Footer'
 import { Link } from 'react-router-dom'
@@ -13,6 +14,15 @@ import { RiEarthLine } from 'react-icons/ri'
 
 
 const Home = () => {
+
+  const [featuredCampaign, setFeaturedCampaign] = useState({
+    id: 1,
+    title: 'Campanha do Agasalho 2026',
+    description: 'Doe roupas e aqueça o inverno de quem mais precisa. Pontos de coleta em toda a região.',
+    image: clothesImage,
+    status: 'Ativa'
+  })
+
   const pillars = [
     {
       id: 1,
@@ -115,8 +125,8 @@ const Home = () => {
                 {/* Coluna da Imagem */}
                 <div className="overflow-hidden rounded-xl h-64 md:h-80">
                   <img
-                    src={clothesImage}
-                    alt="Campanha do Agasalho"
+                    src={featuredCampaign.image || clothesImage}
+                    alt={featuredCampaign.title}
                     className="w-full h-full object-cover rounded-2xl"
                   />
                 </div>
@@ -128,14 +138,14 @@ const Home = () => {
                   </span>
 
                   <h2 className="text-2xl md:text-3xl font-bold text-[#0f382c] mt-2 mb-4">
-                    Campanha do Agasalho 2026
+                    {featuredCampaign.title}
                   </h2>
 
                   <p className="text-gray-600 text-base leading-relaxed mb-6">
-                    Doe roupas e aqueça o inverno de quem mais precisa. Pontos de coleta em toda a região.
+                    {featuredCampaign.description}
                   </p>
 
-                  <Link to="/campanhas">
+                  <Link to={`/campanhas/${featuredCampaign.id}`}>
                     <Button className="inline-flex items-center gap-2 rounded-full bg-[#0f382c] px-6 py-3 font-semibold text-white hover:bg-[#154d3d] transition">
                       <span>Saiba mais</span>
                     </Button>
