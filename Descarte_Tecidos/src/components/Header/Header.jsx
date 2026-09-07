@@ -23,7 +23,8 @@ const Header = () => {
         if (logout) logout()
         navigate('/')
     }
-    const avatarLetter = user?.nome ? user.nome.charAt(0).toUpperCase() : 'U';
+    const avatarLetter = (user?.name || user?.nome) ? (user.name || user.nome).charAt(0).toUpperCase() : 'U';
+
 
     return (
         <>
@@ -63,13 +64,14 @@ const Header = () => {
                                         {avatarLetter}
                                     </div>
                                     <span className="text-[15px] font-medium flex items-center gap-1">
-                                        Olá, {user.nome || 'Usuário'} 
+                                        Olá, {user.name || user.nome || 'Usuário'}
+
                                         <RiArrowDownSFill className="text-gray-600" />
                                     </span>
                                 </div>
-                                
-                                <button 
-                                    onClick={handleLogout} 
+
+                                <button
+                                    onClick={handleLogout}
                                     className="text-[15px] font-medium text-blue-600 hover:text-blue-800 hover:underline"
                                 >
                                     Sair
@@ -87,7 +89,7 @@ const Header = () => {
                             </>
                         )}
                     </div>
-                    
+
                     {/* BOTÃO MENU MOBILE */}
                     <button
                         onClick={() => setMenuOpen(!menuOpen)}
@@ -97,7 +99,7 @@ const Header = () => {
                         {menuOpen ? <RiCloseLine /> : <RiMenuLine />}
                     </button>
                 </div>
-                
+
                 {/* MENU MOBILE */}
                 {menuOpen && (
                     <nav className="border-t border-gray-200 bg-gray-100 px-5 pb-5 md:hidden">
@@ -118,7 +120,7 @@ const Header = () => {
                                             {avatarLetter}
                                         </div>
                                         <span className="text-[15px] font-medium text-[#123C2C]">
-                                            Olá, {user.nome || 'Usuário'}
+                                            Olá, {user.name || user.nome || 'Usuário'}
                                         </span>
                                     </div>
                                     <Button onClick={() => { handleLogout(); setMenuOpen(false); }} className="w-full bg-red-600 text-white font-bold border-none">
