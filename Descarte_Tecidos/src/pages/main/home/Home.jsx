@@ -1,6 +1,6 @@
 import React from 'react'
 import { useState } from 'react'
-import Header from '../../../components/header/Header'
+import Header from '../../../components/Header/Header'
 import Footer from '../../../components/footer/Footer'
 import { Link } from 'react-router-dom'
 import Button from '../../../components/btns/Button'

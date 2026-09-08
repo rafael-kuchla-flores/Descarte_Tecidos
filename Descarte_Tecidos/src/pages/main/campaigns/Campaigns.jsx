@@ -1,5 +1,5 @@
 import React from 'react'
-import Header from '../../../components/header/Header'
+import Header from '../../../components/Header/Header'
 import CampaignCard from '../../../components/CampaignCard/CampaignCard'
 import Footer from '../../../components/footer/Footer'
 

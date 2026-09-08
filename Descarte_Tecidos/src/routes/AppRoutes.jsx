@@ -28,7 +28,7 @@ function AppRoutes() {
       <Route path="/como-funciona" element={<About />} />
       <Route path="/pontos-de-coleta" element={<PointsCollection />} />
       <Route path="/campanhas" element={<Campaigns />} />
-      <Route path="/conteudos" element={<Content />} />
+      <Route path="/conteudos" element={<Content />} /> 
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/redefinir-senha" element={<PasswordReset />} />
