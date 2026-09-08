@@ -10,12 +10,12 @@ const login = async (email, password) => {
   })
 }
 
-// --- NOVA FUNÇÃO ADICIONADA ---
+
 const getMe = async (token) => {
   return await api('/users/me', {
     method: 'GET',
     headers: {
-      Authorization: `Bearer ${token}` // Injetamos o token que acabamos de receber
+      Authorization: `Bearer ${token}` 
     }
   })
 }

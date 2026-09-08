@@ -17,6 +17,7 @@ const Users = () => {
   const [error, setError] = useState('')
 
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -46,7 +47,23 @@ const Users = () => {
     fetchUsers()
   }, [])
 
-  const handleCreateUser = async (e) => {
+
+  const handleEditClick = (user) => {
+    setFormError('')
+    setEditingId(user.id)
+    setFormData({
+      name: user.name,
+      email: user.email,
+      cpf: user.document,
+      phone: user.phone || '',
+      password: '',
+      role: user.roles && user.roles.includes('ADMIN') ? 'ADMIN' : 'DOADOR'
+    })
+    setIsModalOpen(true)
+  }
+
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setFormError('')
 
@@ -55,31 +72,39 @@ const Users = () => {
       formattedPhone = `+55${formattedPhone}`;
     }
 
-
     const dataToSend = {
       name: formData.name,
       email: formData.email,
-      password: formData.password,
       phone: formattedPhone,
-      document: formData.cpf, 
-      roles: [formData.role] 
+      document: formData.cpf,
+      roles: [formData.role]
     };
+
+
+    if (!editingId) {
+      dataToSend.password = formData.password;
+    }
 
     try {
       setSubmitting(true)
-      await userService.createUser(dataToSend) 
+
+      if (editingId) {
+        await userService.updateUser(editingId, dataToSend)
+      } else {
+        await userService.createUser(dataToSend)
+      }
 
       setIsModalOpen(false)
+      setEditingId(null)
       setFormData({ name: '', email: '', cpf: '', phone: '', password: '', role: 'DOADOR' })
       fetchUsers()
     } catch (err) {
       console.error(err)
-      
       if (err.data && err.data.fieldErrors && Array.isArray(err.data.fieldErrors)) {
         const errorMessages = err.data.fieldErrors.map(e => `${e.field}: ${e.message}`).join(' | ')
         setFormError(`Opa! Corrija isso: ${errorMessages}`)
       } else {
-        setFormError(err.data?.message || 'Erro ao cadastrar usuário. Verifique os campos.')
+        setFormError(err.data?.message || 'Erro ao salvar usuário. Verifique os campos.')
       }
     } finally {
       setSubmitting(false)
@@ -87,13 +112,15 @@ const Users = () => {
   }
 
   const handleDelete = async (id) => {
-    if (window.confirm('Tem certeza que deseja remover este usuário?')) {
+    if (window.confirm('Tem certeza que deseja inativar este usuário?')) {
       try {
+
         await userService.deleteUser(id)
-        setUsersList(usersList.filter(user => user.id !== id))
+
+        fetchUsers()
       } catch (err) {
         console.error(err)
-        alert('Erro ao excluir o usuário.')
+        alert('Erro ao inativar o usuário. Verifique o console.')
       }
     }
   }
@@ -195,6 +222,21 @@ const Users = () => {
                         {user.active !== false ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
+
+                    <td className="py-4 px-6 text-right">
+                      <div className="flex items-center justify-end gap-2">
+
+                        <button
+                          onClick={() => handleEditClick(user)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                          title="Editar"
+                        >
+                          <RiPencilLine className="text-lg" />
+                        </button>
+                      </div>
+                    </td>
+
+
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
@@ -236,7 +278,7 @@ const Users = () => {
               </div>
             )}
 
-            <form onSubmit={handleCreateUser} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Nome Completo *</label>
                 <input
@@ -291,7 +333,7 @@ const Users = () => {
                   <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Senha Inicial *</label>
                   <input
                     type="password"
-                    required
+                    required={!editingId}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder="Mínimo de caracteres"

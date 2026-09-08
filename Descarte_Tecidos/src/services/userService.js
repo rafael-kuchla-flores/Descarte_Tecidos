@@ -1,4 +1,4 @@
-// src/services/userService.js
+
 import api from './api'
 
 const getUsers = async () => {
@@ -13,7 +13,19 @@ const createUser = async (userData) => {
 }
 
 const deleteUser = async (id) => {
-  return await api(`/admin/users/${id}`, { method: 'DELETE' })
+  return await api(`/admin/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive: false })
+    })
 }
 
-export default { getUsers, createUser, deleteUser }
+
+const updateUser = async (id, userData) => {
+  return await api(`/admin/users/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(userData),
+  })
+}
+
+
+export default { getUsers, createUser, deleteUser, updateUser }
