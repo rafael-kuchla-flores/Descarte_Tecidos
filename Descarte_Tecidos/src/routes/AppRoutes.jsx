@@ -17,6 +17,8 @@ import CampaignsAdmin from "../pages/admin/campaigns/CampaignsAdmin.jsx";
 import CollectionPoints from "../pages/admin/collection-points/CollectionPoints.jsx";
 import UsersAdmin from "../pages/admin/users/Users.jsx";
 import ContentAdmin from "../pages/admin/content/ContentAdmin.jsx";
+//acess denied
+import AccessDenied from "../pages/access-denied/AccessDenied.jsx";
 
 function AppRoutes() {
   return (
@@ -42,6 +44,7 @@ function AppRoutes() {
           <Route path="/admin/content" element={<ContentAdmin />} />
         </Route>
       </Route>
+      <Route path="/acesso-negado" element={<AccessDenied />} />
     </Routes>
   );
 }
