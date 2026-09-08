@@ -8,7 +8,7 @@ const api = async (endpoint, options = {}) => {
     ...options.headers,
   }
 
-  // Só envia o token quando NÃO for uma rota de autenticação
+
   if (token && !endpoint.startsWith('/auth/')) {
     headers.Authorization = `Bearer ${token}`
   }
