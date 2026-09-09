@@ -12,14 +12,13 @@ const login = async (email, password) => {
 
 
 const getMe = async (token) => {
-  return await api('/users/me', {
+  return await api('/user', {
     method: 'GET',
     headers: {
-      Authorization: `Bearer ${token}` 
+      Authorization: `Bearer ${token}`
     }
   })
 }
-
 const register = async (userData) => {
   return await api('/register', {
     method: 'POST',
@@ -37,11 +36,11 @@ const forgotPassword = async (email) => {
 }
 
 const resetPassword = async (token, newPassword) => {
-  return await api('/auth/reset-password', {
+  return await api('/auth/forgot-password/reset', {
     method: 'POST',
     body: JSON.stringify({
       token,
-      newPassword,
+      newPassword, 
     }),
   })
 }
@@ -51,7 +50,7 @@ const authService = {
   register,
   forgotPassword,
   resetPassword,
-  getMe, 
+  getMe,
 }
 
 export default authService
