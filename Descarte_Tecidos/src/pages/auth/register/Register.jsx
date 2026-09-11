@@ -81,17 +81,10 @@ const Register = () => {
 
       <main className="min-h-screen w-full flex flex-col lg:flex-row">
 
-        {/* COLUNA ESQUERDA (Banner Verde) */}
+      
         <section className="hidden lg:flex lg:w-1/2 bg-[#153D2C] text-white relative overflow-hidden flex-col justify-between p-12">
 
-          {/* Logo no topo da coluna */}
-          <div className="flex items-center gap-2">
-            <RiRecycleFill className="h-8 w-8 text-white" />
-            <span className="font-bold text-lg leading-tight">
-              Tecidos<br />Conscientes
-            </span>
-          </div>
-
+         
           {/* Textos Centrais */}
           <div className="my-auto max-w-sm">
             <h1 className="text-3xl font-bold leading-tight mb-4">
