@@ -35,7 +35,6 @@ function AppRoutes() {
       <Route path="/redefinir-senha/nova" element={<NewPassword />} />
 
       {/* admin */}
-      <Route element={<ProtectedRoute adminOnly={true} />}>
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<DashBoard />} />
           <Route path="/admin/campaigns" element={<CampaignsAdmin />} />
@@ -43,6 +42,7 @@ function AppRoutes() {
           <Route path="/admin/users" element={<UsersAdmin />} />
           <Route path="/admin/content" element={<ContentAdmin />} />
         </Route>
+      <Route element={<ProtectedRoute adminOnly={true} />}>
       </Route>
       <Route path="/acesso-negado" element={<AccessDenied />} />
     </Routes>
