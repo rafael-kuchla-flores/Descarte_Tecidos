@@ -81,9 +81,6 @@ const AdminLayout = () => {
           <NavLink to="/admin/content" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
             <RiFileTextLine className="text-lg" /> Conteúdos
           </NavLink>
-          <NavLink to="/admin/settings" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
-            <RiSettings4Line className="text-lg" /> Configurações
-          </NavLink>
         </nav>
 
         <div className="px-4 pb-6 pt-4 mt-auto">
