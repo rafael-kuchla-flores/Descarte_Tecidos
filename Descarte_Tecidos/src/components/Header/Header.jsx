@@ -32,7 +32,7 @@ const Header = () => {
                 <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 md:flex-row md:justify-between">
                     <div className="logo flex items-center gap-2">
                         <RiRecycleFill className="h-10 w-10 text-green-800 sm:h-12 sm:w-12" />
-                        <h1 className="text-xl font-bold text-green-800">Tecidos <span className="text-green-800 block">Conscientes</span></h1>
+                        <h1 className="text-xl font-bold text-green-800">ECOTECIDO <span className="text-green-800 block"></span></h1>
                     </div>
 
                     <div className="hidden md:block">
