@@ -44,14 +44,38 @@ const MOCK_POINTS = [
     },
 ]
 
+// Função adaptadora: padroniza os campos para o Card e a Busca não quebrarem
+const normalizePoint = (point) => ({
+    id: point.id,
+    name: point.nome || point.name || 'Ponto de Coleta',
+    city: point.cidade ? `${point.cidade}${point.bairro ? ` - ${point.bairro}` : ''}` : (point.city || 'Recife - PE'),
+    address: point.endereco || point.address || 'Endereço não informado',
+    hours: point.horario || point.hours || 'Horário comercial',
+    distance: point.distance || 'Ponto cadastrado',
+    category: point.materiais || point.category || 'Geral',
+    iconType: point.iconType || 'recycle',
+    status: point.status || 'ATIVO',
+})
+
 const getCollectionPoints = async () => {
     try {
-        // Tenta buscar no backend no endpoint padrão
-        const data = await api('/collection-points', { method: 'GET' })
-        return data && data.length > 0 ? data : MOCK_POINTS
+        // 1. Chama a rota correta do backend
+        const data = await api('/collect-points', { method: 'GET' })
+
+        // 2. Trata tanto array direto quanto resposta paginada do Spring Boot (data.content)
+        const list = Array.isArray(data) ? data : data?.content || []
+
+        if (list.length > 0) {
+            // Filtra apenas os pontos que estão com status ATIVO (ou sem status definido)
+            const activePoints = list.filter((p) => !p.status || p.status === 'ATIVO')
+            return (activePoints.length > 0 ? activePoints : list).map(normalizePoint)
+        }
+
+        // Se o banco estiver vazio, usa os dados de contingência
+        return MOCK_POINTS.map(normalizePoint)
     } catch (error) {
-        console.warn('Backend ainda sem endpoint de pontos de coleta. Usando dados locais:', error)
-        return MOCK_POINTS
+        console.warn('Backend sem pontos ou sem permissão de visitante. Usando dados locais:', error)
+        return MOCK_POINTS.map(normalizePoint)
     }
 }
 
@@ -59,3 +83,4 @@ export default {
     getCollectionPoints,
     MOCK_POINTS,
 }
+
