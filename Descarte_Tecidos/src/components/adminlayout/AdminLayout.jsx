@@ -53,7 +53,7 @@ const AdminLayout = () => {
           <div className="flex items-center gap-3">
             <RiRecycleFill className="h-8 w-8 text-white" />
             <h1 className="text-[17px] font-bold leading-tight">
-              Tecidos <span className="block font-normal">Conscientes</span>
+              Ecotecido
             </h1>
           </div>
           <button 
@@ -80,9 +80,6 @@ const AdminLayout = () => {
           </NavLink>
           <NavLink to="/admin/content" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
             <RiFileTextLine className="text-lg" /> Conteúdos
-          </NavLink>
-          <NavLink to="/admin/settings" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
-            <RiSettings4Line className="text-lg" /> Configurações
           </NavLink>
         </nav>
 

@@ -45,11 +45,9 @@ const Footer = () => {
               />
 
               <div className="text-xl font-bold leading-tight">
-                <p>DESCARTE</p>
                 <p>
-                  DE{" "}
                   <span className="text-lime-400">
-                    TECIDOS
+                    ECOTECIDOS
                   </span>
                 </p>
               </div>
