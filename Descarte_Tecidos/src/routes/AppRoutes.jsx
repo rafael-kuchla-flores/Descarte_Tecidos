@@ -20,6 +20,9 @@ import UsersAdmin from "../pages/admin/users/Users.jsx";
 import ContentAdmin from "../pages/admin/content/ContentAdmin.jsx";
 //acess denied
 import AccessDenied from "../pages/access-denied/AccessDenied.jsx";
+// Manager
+import ManagerLayout from "../components/managerlayout/ManagerLayout.jsx";
+
 
 function AppRoutes() {
   return (
@@ -47,6 +50,13 @@ function AppRoutes() {
         </Route>
       </Route>
       <Route path="/acesso-negado" element={<AccessDenied />} />
+
+      {/* Manager */}
+      <Route element={<ProtectedRoute managerOnly={true} />}>
+        <Route element={<ManagerLayout />}>
+          
+        </Route>
+      </Route>
     </Routes>
   );
 }
