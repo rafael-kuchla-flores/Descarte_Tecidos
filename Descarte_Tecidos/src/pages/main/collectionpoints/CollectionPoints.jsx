@@ -1,9 +1,214 @@
-import React from 'react'
+import { useState, useEffect } from 'react'
+import { RiSearchLine, RiMapPinLine, RiMap2Line } from 'react-icons/ri'
 import Header from '../../../components/Header/Header'
+import CollectionPointCard from '../../../components/CollectionPointCard/CollectionPointCard'
+import collectionPointService from '../../../services/collectionPointService'
+
 const CollectionPoints = () => {
+  const [points, setPoints] = useState([])
+  const [search, setSearch] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [filteredPoints, setFilteredPoints] = useState([])
+  const [selectedPointId, setSelectedPointId] = useState(null)
+
+  // Busca os pontos da API ao carregar a página
+  useEffect(() => {
+    const fetchPoints = async () => {
+      setLoading(true)
+      const data = await collectionPointService.getCollectionPoints()
+      setPoints(data)
+      setFilteredPoints(data)
+      if (data.length > 0) {
+        setSelectedPointId(data[0].id)
+      }
+      setLoading(false)
+    }
+    fetchPoints()
+  }, [])
+
+  // Filtra os pontos conforme o usuário digita na busca
+  const handleSearch = () => {
+    const term = search.toLowerCase().trim()
+    if (!term) {
+      setFilteredPoints(points)
+      if (points.length > 0) setSelectedPointId(points[0].id)
+      return
+    }
+    const result = points.filter(
+      (p) =>
+        p.name.toLowerCase().includes(term) ||
+        p.city.toLowerCase().includes(term) ||
+        p.address.toLowerCase().includes(term)
+    )
+    setFilteredPoints(result)
+    if (result.length > 0) {
+      setSelectedPointId(result[0].id)
+    } else {
+      setSelectedPointId(null)
+    }
+  }
+
+  // Permite buscar ao apertar Enter
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSearch()
+  }
+
+  // Ponto atualmente em foco no mapa
+  const activePoint = filteredPoints.find((p) => p.id === selectedPointId) || filteredPoints[0] || null
+
+  // URL dinâmica do Google Maps Embed
+  const mapQuery = activePoint
+    ? `${activePoint.name}, ${activePoint.address}, ${activePoint.city}`
+    : search
+      ? `${search}, Brasil`
+      : 'Recife, PE, Brasil'
+
+  const mapEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=${activePoint ? '15' : '12'}&ie=UTF8&iwloc=&output=embed`
+
+  const directionsUrl = activePoint
+    ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${activePoint.name}, ${activePoint.address}, ${activePoint.city}`)}`
+    : '#'
+
   return (
     <>
       <Header />
+
+      <main className="max-w-7xl mx-auto px-4 py-10">
+        {/* Título */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Pontos de coleta</h1>
+          <p className="text-gray-500 mt-2">
+            Encontre o ponto de descarte ou doação mais próximo de você.
+          </p>
+        </div>
+
+        {/* Barra de busca */}
+        <div className="flex gap-3 max-w-2xl mx-auto mb-6">
+          <div className="flex-1 flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 bg-white">
+            <RiSearchLine className="text-gray-400" />
+            <input
+              type="text"
+              placeholder="Digite sua cidade ou bairro..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="flex-1 outline-none text-sm text-gray-700"
+            />
+          </div>
+          <button
+            onClick={handleSearch}
+            className="bg-[#153D2C] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#1f5c42] transition-colors"
+          >
+            Buscar
+          </button>
+        </div>
+
+        {/* Resultado + Layout de duas colunas */}
+        {loading ? (
+          <p className="text-center text-gray-500">Carregando pontos de coleta...</p>
+        ) : (
+          <>
+            <p className="text-sm text-green-800 font-medium mb-4">
+              {filteredPoints.length} {filteredPoints.length === 1 ? 'ponto encontrado' : 'pontos encontrados'}
+            </p>
+
+            <div className="flex flex-col lg:flex-row gap-6 items-start">
+
+              {/* Coluna esquerda: lista de cards */}
+              <div className="flex-1 flex flex-col gap-4 w-full">
+                {filteredPoints.length === 0 ? (
+                  <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
+                    <p className="text-gray-500 text-sm">Nenhum ponto encontrado para essa busca.</p>
+                    <button
+                      onClick={() => {
+                        setSearch('')
+                        setFilteredPoints(points)
+                        if (points.length > 0) setSelectedPointId(points[0].id)
+                      }}
+                      className="mt-3 text-[#153D2C] font-semibold text-sm hover:underline"
+                    >
+                      Limpar busca e ver todos os pontos
+                    </button>
+                  </div>
+                ) : (
+                  filteredPoints.map((point) => (
+                    <CollectionPointCard
+                      key={point.id}
+                      point={point}
+                      isSelected={point.id === selectedPointId}
+                      onSelect={() => setSelectedPointId(point.id)}
+                    />
+                  ))
+                )}
+              </div>
+
+              {/* Coluna direita: Painel do Mapa Interativo com Sticky Scroll */}
+              <div className="w-full lg:w-[440px] shrink-0">
+                <div className="sticky top-6 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex flex-col">
+
+                  {/* Topo do painel */}
+                  <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/70">
+                    <div className="flex items-center gap-2">
+                      <RiMapPinLine className="text-lg text-[#153D2C]" />
+                      <h2 className="font-bold text-gray-900 text-sm">Mapa interativo</h2>
+                    </div>
+                    <span className="text-xs text-gray-500 font-medium">
+                      Clique em um card para focar
+                    </span>
+                  </div>
+
+                  {/* Iframe do Google Maps */}
+                  <div className="w-full h-80 sm:h-96 bg-gray-100 relative">
+                    <iframe
+                      title="Mapa interativo de pontos de coleta"
+                      src={mapEmbedUrl}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen=""
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </div>
+
+                  {/* Resumo do Ponto em Destaque */}
+                  {activePoint ? (
+                    <div className="p-4 bg-white flex flex-col gap-3">
+                      <div>
+                        <span className="text-[11px] uppercase tracking-wider font-semibold text-[#153D2C] bg-emerald-50 px-2 py-0.5 rounded-md">
+                          Ponto em destaque
+                        </span>
+                        <h3 className="font-bold text-gray-900 text-sm mt-1.5 leading-snug">
+                          {activePoint.name}
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {activePoint.address} • {activePoint.city}
+                        </p>
+                      </div>
+
+                      <a
+                        href={directionsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-2 bg-[#153D2C] hover:bg-[#1e543d] text-white py-2.5 px-3 rounded-lg text-xs font-semibold transition-colors shadow-sm"
+                      >
+                        <RiMap2Line className="text-sm" />
+                        Traçar rota no Google Maps
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-xs text-gray-500">
+                      Nenhum ponto selecionado.
+                    </div>
+                  )}
+
+                </div>
+              </div>
+
+            </div>
+          </>
+        )}
+      </main>
     </>
   )
 }
