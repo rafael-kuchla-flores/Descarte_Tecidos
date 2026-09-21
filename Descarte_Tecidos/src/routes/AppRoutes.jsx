@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import Home from "../pages/main/home/Home.jsx";
 import About from "../pages/main/about/About.jsx";
@@ -22,6 +22,7 @@ import ContentAdmin from "../pages/admin/content/ContentAdmin.jsx";
 import AccessDenied from "../pages/access-denied/AccessDenied.jsx";
 // Manager
 import ManagerLayout from "../components/managerlayout/ManagerLayout.jsx";
+import ManagerDashboard from "../pages/manager/dashboard/ManagerDashboard.jsx";
 
 
 function AppRoutes() {
@@ -52,11 +53,12 @@ function AppRoutes() {
       <Route path="/acesso-negado" element={<AccessDenied />} />
 
       {/* Manager */}
-      <Route element={<ProtectedRoute managerOnly={true} />}>
-        <Route element={<ManagerLayout />}>
-          
-        </Route>
+      {/* <Route element={<ProtectedRoute managerOnly={true} />}> */}
+      <Route path="/manager" element={<ManagerLayout />}>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<ManagerDashboard />} />
       </Route>
+      {/* </Route> */}
     </Routes>
   );
 }
