@@ -115,7 +115,7 @@ const CampaignDetail = () => {
             </div>
 
             {/* Título Principal */}
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#153D2C] mb-3 tracking-tight">
               {campaign.title}
             </h1>
 
@@ -126,7 +126,7 @@ const CampaignDetail = () => {
 
             {/* Seção Como Participar */}
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-4">
+              <h2 className="text-base sm:text-lg font-bold text-[#153D2C] mb-4">
                 Como participar
               </h2>
 
@@ -166,18 +166,18 @@ const CampaignDetail = () => {
         {/* Bloco Inferior: Pontos Participantes */}
         <section className="pt-6 border-t border-gray-100">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+            <h2 className="text-lg sm:text-xl font-bold text-[#153D2C]">
               Pontos participantes
             </h2>
             <Link
               to="/pontos-de-coleta"
-              className="text-xs sm:text-sm font-semibold text-gray-600 hover:text-green-900 transition-colors"
+              className="text-xs sm:text-sm font-medium text-gray-500 hover:text-[#153D2C] transition-colors"
             >
               Ver todos os pontos →
             </Link>
           </div>
 
-          {/* Grid de Cards dos Pontos Participantes */}
+          {/* Grid de Cards dos Pontos Participantes (Layout Horizontal idêntico ao Figma) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
             {participatingPoints.map((point) => {
               const Icon = ICONS[point.iconType] || RiBuildingLine
@@ -186,25 +186,30 @@ const CampaignDetail = () => {
                 <Link
                   to={`/pontos-de-coleta/${point.id}`}
                   key={point.id}
-                  className="p-5 rounded-2xl border border-gray-200/90 hover:border-green-800 hover:shadow-md transition-all duration-200 bg-white flex flex-col justify-between group"
+                  className="p-5 rounded-2xl border border-gray-200/90 hover:border-[#153D2C] hover:shadow-sm transition-all duration-200 bg-white flex items-start gap-4 group"
                 >
-                  <div>
-                    <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-700 mb-3 group-hover:bg-emerald-50 group-hover:text-emerald-800 transition-colors">
-                      <Icon className="text-xl" />
-                    </div>
-                    <h3 className="font-bold text-gray-900 text-sm sm:text-base mb-1 group-hover:text-[#153D2C] transition-colors leading-snug">
-                      {point.name}
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      {point.city}
-                    </p>
+                  <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center shrink-0 group-hover:bg-emerald-50 transition-colors">
+                    <Icon
+                      className={`text-2xl ${
+                        point.iconType === 'recycle'
+                          ? 'text-green-600'
+                          : point.iconType === 'factory'
+                          ? 'text-amber-600'
+                          : 'text-gray-700'
+                      }`}
+                    />
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                    <span>{point.distance}</span>
-                    <span className="text-[#153D2C] font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
-                      Ver detalhes →
-                    </span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900 text-sm sm:text-base group-hover:text-[#153D2C] transition-colors leading-snug truncate">
+                      {point.name}
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {point.city}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1 font-medium">
+                      {point.distance}
+                    </p>
                   </div>
                 </Link>
               )
