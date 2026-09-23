@@ -25,6 +25,7 @@ import AccessDenied from "../pages/access-denied/AccessDenied.jsx";
 import ManagerLayout from "../components/managerlayout/ManagerLayout.jsx";
 import ManagerDashboard from "../pages/manager/dashboard/ManagerDashboard.jsx";
 import ManagerCollectionPoint from "../pages/manager/collection-point/CollectionPoint.jsx";
+import Schedules from "../pages/manager/schedules/Schedules.jsx";
 
 
 function AppRoutes() {
@@ -61,6 +62,7 @@ function AppRoutes() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<ManagerDashboard />} />
         <Route path="collection-point" element={<ManagerCollectionPoint />} />
+        <Route path="schedules" element={<Schedules />} />
       </Route>
       {/* </Route> */}
     </Routes>

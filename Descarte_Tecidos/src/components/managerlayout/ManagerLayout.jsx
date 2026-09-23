@@ -32,7 +32,7 @@ const ManagerLayout = () => {
   const menuItems = [
     { name: 'Dashboard', icon: RiLayoutGridLine, path: '/manager/dashboard' },
     { name: 'Ponto de Coleta', icon: RiMapPinLine, path: '/manager/collection-point' },
-    { name: 'Horários', icon: RiTimeLine, path: '/manager/horarios' },
+    { name: 'Horários', icon: RiTimeLine, path: '/manager/schedules' },
     { name: 'Tipos de Tecidos', icon: RiShirtLine, path: '/manager/tipos-tecidos' },
     { name: 'Operadores', icon: RiUser3Line, path: '/manager/operadores' },
     { name: 'Recebimentos', icon: RiBox3Line, path: '/manager/recebimentos' },
