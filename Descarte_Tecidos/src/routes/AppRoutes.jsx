@@ -26,6 +26,7 @@ import ManagerLayout from "../components/managerlayout/ManagerLayout.jsx";
 import ManagerDashboard from "../pages/manager/dashboard/ManagerDashboard.jsx";
 import ManagerCollectionPoint from "../pages/manager/collection-point/CollectionPoint.jsx";
 import Schedules from "../pages/manager/schedules/Schedules.jsx";
+import AcceptedFabrics from "../pages/manager/accepted-fabrics/AcceptedFabrics.jsx";
 
 
 function AppRoutes() {
@@ -63,6 +64,7 @@ function AppRoutes() {
         <Route path="dashboard" element={<ManagerDashboard />} />
         <Route path="collection-point" element={<ManagerCollectionPoint />} />
         <Route path="schedules" element={<Schedules />} />
+        <Route path="accepted-fabrics" element={<AcceptedFabrics />} />
       </Route>
       {/* </Route> */}
     </Routes>
