@@ -5,6 +5,7 @@ import About from "../pages/main/about/About.jsx";
 import PointsCollection from "../pages/main/collectionpoints/CollectionPoints.jsx";
 import CollectionPointDetail from "../pages/main/collectionpoints/CollectionPointDetail.jsx";
 import Campaigns from "../pages/main/campaigns/Campaigns.jsx";
+import CampaignDetail from "../pages/main/campaigns/CampaignDetail.jsx";
 import Content from "../pages/main/content/Content.jsx";
 import Login from "../pages/auth/login/Login.jsx";
 import Register from "../pages/auth/register/Register.jsx";
@@ -34,6 +35,7 @@ function AppRoutes() {
       <Route path="/pontos-de-coleta" element={<PointsCollection />} />
       <Route path="/pontos-de-coleta/:id" element={<CollectionPointDetail />} />
       <Route path="/campanhas" element={<Campaigns />} />
+      <Route path="/campanhas/:id" element={<CampaignDetail />} />
       <Route path="/conteudos" element={<Content />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
