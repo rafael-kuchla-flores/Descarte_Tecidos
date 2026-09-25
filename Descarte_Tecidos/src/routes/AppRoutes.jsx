@@ -29,6 +29,8 @@ import Schedules from "../pages/manager/schedules/Schedules.jsx";
 import AcceptedFabrics from "../pages/manager/accepted-fabrics/AcceptedFabrics.jsx";
 import Operators from "../pages/manager/operators/Operators.jsx";
 import Receipts from "../pages/manager/receipts/Receipts.jsx";
+// Operator
+import OperatorLayout from "../components/operatorlayout/OperatorLayout.jsx";
 
 
 function AppRoutes() {
@@ -71,6 +73,12 @@ function AppRoutes() {
         <Route path="recebimentos" element={<Receipts />} />
       </Route>
       {/* </Route> */}
+
+      {/* Operator */}
+      <Route path="/operator" element={<OperatorLayout />}>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<ManagerDashboard />} />
+      </Route>
     </Routes>
   );
 }
