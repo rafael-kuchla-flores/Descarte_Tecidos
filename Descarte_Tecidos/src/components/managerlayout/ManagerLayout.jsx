@@ -34,7 +34,7 @@ const ManagerLayout = () => {
     { name: 'Ponto de Coleta', icon: RiMapPinLine, path: '/manager/collection-point' },
     { name: 'Horários', icon: RiTimeLine, path: '/manager/schedules' },
     { name: 'Tipos de Tecidos', icon: RiShirtLine, path: '/manager/accepted-fabrics' },
-    { name: 'Operadores', icon: RiUser3Line, path: '/manager/operadores' },
+    { name: 'Operadores', icon: RiUser3Line, path: '/manager/operators' },
     { name: 'Recebimentos', icon: RiBox3Line, path: '/manager/recebimentos' },
     { name: 'Relatórios', icon: RiBarChartBoxLine, path: '/manager/relatorios' },
   ]
