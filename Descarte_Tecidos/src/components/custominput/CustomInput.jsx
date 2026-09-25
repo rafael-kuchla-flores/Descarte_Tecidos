@@ -1,4 +1,4 @@
-import React from 'react'
+import { useId } from 'react'
 
 const CustomInput = ({
   label,
@@ -6,13 +6,17 @@ const CustomInput = ({
   placeholder,
   value,
   onChange,
-  rightIcon
+  rightIcon,
+  id
 }) => {
+  const generatedId = useId()
+  const inputId = id || generatedId
+
   return (
     <div className="flex flex-col mb-4">
 
       {label && (
-        <label className="mb-2 text-[12px] text-gray-700">
+        <label htmlFor={inputId} className="mb-2 text-[12px] text-gray-700">
           {label}
         </label>
       )}
@@ -20,6 +24,7 @@ const CustomInput = ({
       <div className="relative">
 
         <input
+          id={inputId}
           type={type}
           placeholder={placeholder}
           value={value}

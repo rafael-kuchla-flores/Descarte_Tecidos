@@ -6,6 +6,8 @@ const MOCK_POINTS = [
         id: 1,
         name: 'ONG Mãos Solidárias',
         city: 'Recife - PE',
+        latitude: -8.1268,
+        longitude: -34.9038,
         distance: '2,3 km',
         address: 'Rua das Flores, 123 - Boa Viagem',
         hours: 'Seg. a Sex, 08h às 18h',
@@ -19,6 +21,8 @@ const MOCK_POINTS = [
         id: 2,
         name: 'Instituto Verde Esperança',
         city: 'Recife - PE',
+        latitude: -8.1164,
+        longitude: -34.9061,
         distance: '4,8 km',
         address: 'Av. Recife, 500 - Imbiribeira',
         hours: 'Seg. a Sáb, 09h às 17h',
@@ -32,6 +36,8 @@ const MOCK_POINTS = [
         id: 3,
         name: 'Centro de Reciclagem Têxtil',
         city: 'Jaboatão - PE',
+        latitude: -8.1126,
+        longitude: -35.0146,
         distance: '8,1 km',
         address: 'Rua da Liberdade, 210',
         hours: 'Seg. a Sex, 08h às 18h',
@@ -45,6 +51,8 @@ const MOCK_POINTS = [
         id: 4,
         name: 'Projeto Renovar',
         city: 'Olinda - PE',
+        latitude: -8.0089,
+        longitude: -34.8553,
         distance: '12,4 km',
         address: 'Rua do Sol, 45 - Carmo',
         hours: 'Seg. a Sex, 09h às 16h',
@@ -56,17 +64,13 @@ const MOCK_POINTS = [
     },
 ]
 
-// Função adaptadora: padroniza os campos para o Card e a Busca não quebrarem
+
 const normalizePoint = (point) => {
-    // Transforma materiais em array caso o backend envie como string separada por vírgula
-    let materialsList = []
-    if (Array.isArray(point.materials)) {
-        materialsList = point.materials
-    } else if (typeof point.materiais === 'string') {
-        materialsList = point.materiais.split(',').map((m) => m.trim())
-    } else {
-        materialsList = ['Tecidos em geral', 'Roupas em bom estado']
-    }
+    const materialsList = Array.isArray(point.materials)
+        ? point.materials
+        : typeof point.materiais === 'string'
+            ? point.materiais.split(',').map((m) => m.trim())
+            : ['Tecidos em geral', 'Roupas em bom estado']
 
     return {
         id: point.id,
@@ -78,8 +82,11 @@ const normalizePoint = (point) => {
         phone: point.telefone || point.phone || '(81) 99999-9999',
         description: point.descricao || point.description || 'Ponto de arrecadação e destinação consciente de resíduos têxteis.',
         materials: materialsList,
+        photo: point.foto || point.imagem || point.photo || point.image || point.fotoUrl || null,
         category: point.category || 'ong',
         iconType: point.iconType || 'recycle',
+        latitude: Number(point.latitude ?? point.lat) || null,
+        longitude: Number(point.longitude ?? point.lng ?? point.lon) || null,
         status: point.status || 'ATIVO',
     }
 }
@@ -90,8 +97,8 @@ const getCollectionPoints = async () => {
         const list = Array.isArray(data) ? data : data?.content || []
 
         if (list.length > 0) {
-            const activePoints = list.filter((p) => !p.status || p.status === 'ATIVO')
-            return (activePoints.length > 0 ? activePoints : list).map(normalizePoint)
+            const publicPoints = list.filter((p) => p.status === 'ATIVO' || p.status === 'PAUSADO')
+            return publicPoints.map(normalizePoint)
         }
 
         return MOCK_POINTS.map(normalizePoint)
@@ -104,10 +111,10 @@ const getCollectionPoints = async () => {
 const getPointById = async (id) => {
     try {
         const data = await api(`/collect-points/${id}`, { method: 'GET' })
-        if (data && data.id) {
+        if (data && data.id && (data.status === 'ATIVO' || data.status === 'PAUSADO')) {
             return normalizePoint(data)
         }
-    } catch (error) {
+    } catch {
         console.warn(`Não foi possível buscar o ponto ${id} na API. Buscando localmente.`)
     }
 

@@ -1,8 +1,9 @@
-import React from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
-const ProtectedRoute = ({ adminOnly = false }) => {
+const normalizeRole = (role) => role?.replace(/^ROLE_/, '').toUpperCase()
+
+const ProtectedRoute = ({ adminOnly = false, allowedRoles = [] }) => {
   const { user, loading } = useAuth()
 
   if (loading) {
@@ -10,10 +11,13 @@ const ProtectedRoute = ({ adminOnly = false }) => {
   }
 
   if (!user) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/login" replace />
   }
 
-  if (adminOnly && user.role !== 'ADMIN') {
+  const roles = adminOnly ? ['ADMIN'] : allowedRoles
+  const hasPermission = roles.length === 0 || roles.includes(normalizeRole(user.role))
+
+  if (!hasPermission) {
     return <Navigate to="/acesso-negado" replace />
   }
 

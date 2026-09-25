@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import Button from '../btns/Button'
 import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { RiRecycleFill, RiMenuLine, RiCloseLine, RiArrowDownSFill } from 'react-icons/ri'
@@ -10,7 +10,7 @@ const Header = () => {
     const navigate = useNavigate()
 
     const linkClass = ({ isActive }) =>
-        `relative pb-1 transition-colors
+        `relative rounded pb-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-800 focus-visible:ring-offset-2
     after:absolute after:bottom-0 after:left-0
     after:h-[2px] after:bg-green-800
     after:transition-all after:duration-300
@@ -30,10 +30,10 @@ const Header = () => {
         <>
             <header className="w-full bg-gray-100 px-4 py-3 sm:px-6 lg:px-8">
                 <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 md:flex-row md:justify-between">
-                    <div className="logo flex items-center gap-2">
+                    <Link to="/" aria-label="Ecotecido, página inicial" className="logo flex items-center gap-2 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-800 focus-visible:ring-offset-2">
                         <RiRecycleFill className="h-10 w-10 text-green-800 sm:h-12 sm:w-12" />
-                        <h1 className="text-xl font-bold text-green-800">ECOTECIDO <span className="text-green-800 block"></span></h1>
-                    </div>
+                        <span className="text-xl font-bold text-green-800">ECOTECIDO</span>
+                    </Link>
 
                     <div className="hidden md:block">
                         <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm font-semibold text-gray-700 sm:gap-x-5 sm:text-base lg:gap-x-6">
@@ -93,8 +93,10 @@ const Header = () => {
                     {/* BOTÃO MENU MOBILE */}
                     <button
                         onClick={() => setMenuOpen(!menuOpen)}
-                        className="text-2xl text-green-800 md:hidden"
+                        className="rounded text-2xl text-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-800 focus-visible:ring-offset-2 md:hidden"
                         aria-label="Abrir menu"
+                        aria-expanded={menuOpen}
+                        aria-controls="mobile-navigation"
                     >
                         {menuOpen ? <RiCloseLine /> : <RiMenuLine />}
                     </button>
@@ -102,7 +104,7 @@ const Header = () => {
 
                 {/* MENU MOBILE */}
                 {menuOpen && (
-                    <nav className="border-t border-gray-200 bg-gray-100 px-5 pb-5 md:hidden">
+                    <nav id="mobile-navigation" className="border-t border-gray-200 bg-gray-100 px-5 pb-5 md:hidden" aria-label="Navegação móvel">
                         <ul className="flex flex-col gap-4 pt-4 font-semibold text-gray-700">
                             <li><NavLink to="/" end className={linkClass} onClick={() => setMenuOpen(false)}>Início</NavLink></li>
                             <li><NavLink to="/como-funciona" className={linkClass} onClick={() => setMenuOpen(false)}>Como funciona</NavLink></li>

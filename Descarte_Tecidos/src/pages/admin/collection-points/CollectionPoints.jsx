@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   RiPencilLine, 
   RiDeleteBinLine, 
   RiCloseLine, 
   RiPauseCircleLine, 
-  RiPlayCircleLine 
+  RiPlayCircleLine,
+  RiCheckLine,
+  RiFilterLine
 } from 'react-icons/ri'
 import pointService from '../../../services/pointsService' 
 
 const CollectionPoints = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [view, setView] = useState('pendentes')
 
   const [pontos, setPontos] = useState([])
   const [loading, setLoading] = useState(true)
@@ -73,9 +76,17 @@ const CollectionPoints = () => {
     }
   }
 
-  const filteredPontos = pontos.filter(ponto =>
-    (ponto.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  )
+  const handleApprove = (id) => {
+    setPontos((currentPontos) => currentPontos.map((ponto) =>
+      ponto.id === id ? { ...ponto, status: 'ATIVO' } : ponto
+    ))
+  }
+
+  const visiblePontos = pontos.filter((ponto) => {
+    const matchesSearch = (ponto.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+    const matchesView = view === 'todos' || ponto.status === 'PENDENTE'
+    return matchesSearch && matchesView
+  })
 
 
   return (
@@ -88,6 +99,24 @@ const CollectionPoints = () => {
           className="bg-[#123C2C] hover:bg-[#1a5640] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
         >
           + Adicionar ponto
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mb-6 border-b border-gray-100 pb-4">
+        <button
+          type="button"
+          onClick={() => setView('pendentes')}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${view === 'pendentes' ? 'bg-amber-100 text-amber-800' : 'text-gray-500 hover:bg-gray-50'}`}
+        >
+          <RiFilterLine />
+          Pendentes ({pontos.filter((ponto) => ponto.status === 'PENDENTE').length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setView('todos')}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${view === 'todos' ? 'bg-[#123C2C] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+        >
+          Todos ({pontos.length})
         </button>
       </div>
 
@@ -113,7 +142,13 @@ const CollectionPoints = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 bg-white">
-            {filteredPontos.map((ponto) => (
+            {loading ? (
+              <tr>
+                <td colSpan="5" className="px-6 py-8 text-center text-sm text-gray-500">
+                  Carregando pontos de coleta...
+                </td>
+              </tr>
+            ) : visiblePontos.map((ponto) => (
               <tr key={ponto.id} className="hover:bg-gray-50/50">
                 <td className="px-6 py-4 font-medium text-gray-800">{ponto.nome}</td>
                 <td className="px-6 py-4">{ponto.cidade}</td>
@@ -122,23 +157,33 @@ const CollectionPoints = () => {
              
                 <td className="px-6 py-4">
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide ${
-                    ponto.status === 'ATIVO' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                    ponto.status === 'ATIVO' ? 'bg-emerald-50 text-emerald-700' : ponto.status === 'PENDENTE' ? 'bg-amber-50 text-amber-700' : 'bg-gray-100 text-gray-600'
                   }`}>
-                    {ponto.status === 'ATIVO' ? 'Recebendo' : 'Pausado'}
+                    {ponto.status === 'ATIVO' ? 'Aprovado' : ponto.status === 'PENDENTE' ? 'Pendente' : 'Pausado'}
                   </span>
                 </td>
 
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3 text-lg">
-                    
-                  
-                    <button 
-                      onClick={() => handleTogglePause(ponto.id)}
-                      className={`${ponto.status === 'ATIVO' ? 'text-amber-500 hover:text-amber-700' : 'text-emerald-500 hover:text-emerald-700'} transition-colors cursor-pointer`}
-                      title={ponto.status === 'ATIVO' ? 'Pausar recebimento' : 'Reativar recebimento'}
-                    >
-                      {ponto.status === 'ATIVO' ? <RiPauseCircleLine /> : <RiPlayCircleLine />}
-                    </button>
+                    {ponto.status === 'PENDENTE' ? (
+                      <button
+                        type="button"
+                        onClick={() => handleApprove(ponto.id)}
+                        className="text-emerald-600 hover:text-emerald-800 transition-colors cursor-pointer"
+                        title="Aprovar ponto"
+                      >
+                        <RiCheckLine />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePause(ponto.id, ponto.status)}
+                        className={`${ponto.status === 'ATIVO' ? 'text-amber-500 hover:text-amber-700' : 'text-emerald-500 hover:text-emerald-700'} transition-colors cursor-pointer`}
+                        title={ponto.status === 'ATIVO' ? 'Pausar recebimento' : 'Reativar recebimento'}
+                      >
+                        {ponto.status === 'ATIVO' ? <RiPauseCircleLine /> : <RiPlayCircleLine />}
+                      </button>
+                    )}
 
                     <button className="text-orange-500 hover:text-orange-700 transition-colors cursor-pointer" title="Editar">
                       <RiPencilLine />
@@ -154,7 +199,7 @@ const CollectionPoints = () => {
         </table>
         
         <div className="px-6 py-4 border-t border-gray-100 text-xs text-gray-400 bg-white">
-          Mostrando 1 a {filteredPontos.length} de {pontos.length} pontos
+          Mostrando {visiblePontos.length} de {pontos.length} pontos
         </div>
       </div>
 

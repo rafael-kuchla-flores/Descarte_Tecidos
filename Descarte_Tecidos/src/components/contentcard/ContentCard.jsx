@@ -1,4 +1,3 @@
-import React from 'react'
 import { NavLink } from 'react-router-dom'
 import { FaLongArrowAltRight } from 'react-icons/fa'
 import defaultCard from '../../assets/images/image.png'
@@ -18,6 +17,7 @@ const ContentCard = ({
       <img
         src={image}
         alt={title}
+        loading="lazy"
         className="w-full h-48 object-cover"
       />
 
@@ -45,7 +45,7 @@ const ContentCard = ({
         <div className="mt-auto">
           <NavLink
             to={linkTo || `/conteudos/${id}`}
-            className="flex items-center gap-2 text-[#2B6054] font-medium text-sm hover:underline"
+            className="flex items-center gap-2 rounded text-[#2B6054] font-medium text-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B6054] focus-visible:ring-offset-2"
           >
             Ler mais
             <FaLongArrowAltRight className="text-xs" />

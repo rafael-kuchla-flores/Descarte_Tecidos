@@ -91,12 +91,26 @@ const CollectionPointDetail = () => {
 
                         {/* Cabeçalho do Ponto: Ícone grande + Nome + Cidade */}
                         <div className="flex items-start gap-4">
-                            <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700">
-                                <Icon className="text-4xl text-[#153D2C]" />
+                            <div className="w-20 h-20 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center">
+                                {point.photo ? (
+                                    <img
+                                        src={point.photo}
+                                        alt={`Foto de ${point.name}`}
+                                        className="h-full w-full object-cover"
+                                    />
+                                ) : (
+                                    <Icon className="text-4xl text-[#153D2C]" />
+                                )}
                             </div>
                             <div>
                                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{point.name}</h1>
                                 <p className="text-sm text-gray-500 mt-0.5 font-medium">{point.city}</p>
+                                <span className={`inline-flex mt-2 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase ${point.status === 'PAUSADO'
+                                    ? 'bg-amber-50 text-amber-700'
+                                    : 'bg-emerald-50 text-emerald-700'
+                                    }`}>
+                                    {point.status === 'PAUSADO' ? 'Indisponível temporariamente' : 'Recebendo doações'}
+                                </span>
                             </div>
                         </div>
 

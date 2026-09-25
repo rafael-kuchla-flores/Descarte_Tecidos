@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import Header from '../../../components/Header/Header'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { FiEye, FiEyeOff } from 'react-icons/fi'
@@ -29,12 +29,15 @@ const Login = () => {
       setLoading(true)
 
       const data = await login(email, senha)
+      const role = data.user.role?.replace(/^ROLE_/, '').toUpperCase()
 
-      if (data.user.role === 'ADMIN') {
+      if (role === 'ADMIN') {
         navigate('/admin')
 
-      } else if (data.user.role === 'MANAGER') {
+      } else if (role === 'MANAGER') {
         navigate('/manager/dashboard')
+      } else if (role === 'OPERATOR') {
+        navigate('/operator/dashboard')
       } else {
         navigate('/')
       }

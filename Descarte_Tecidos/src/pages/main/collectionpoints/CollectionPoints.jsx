@@ -10,6 +10,94 @@ const CollectionPoints = () => {
   const [loading, setLoading] = useState(true)
   const [filteredPoints, setFilteredPoints] = useState([])
   const [selectedPointId, setSelectedPointId] = useState(null)
+  const [locationState, setLocationState] = useState({ status: 'idle', coords: null, error: '' })
+  const [filters, setFilters] = useState({ material: '', maxDistance: '' })
+
+  const calculateDistance = (origin, point) => {
+    if (!origin || point.latitude === null || point.longitude === null) return null
+
+    const earthRadiusKm = 6371
+    const toRadians = (value) => (value * Math.PI) / 180
+    const latitudeDifference = toRadians(point.latitude - origin.latitude)
+    const longitudeDifference = toRadians(point.longitude - origin.longitude)
+    const originLatitude = toRadians(origin.latitude)
+    const pointLatitude = toRadians(point.latitude)
+    const haversine = Math.sin(latitudeDifference / 2) ** 2
+      + Math.cos(originLatitude) * Math.cos(pointLatitude) * Math.sin(longitudeDifference / 2) ** 2
+
+    return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))
+  }
+
+  const formatDistance = (distance) => `${distance.toFixed(1).replace('.', ',')} km`
+
+  const sortByDistance = (list, coords) => list
+    .map((point) => {
+      const calculatedDistance = calculateDistance(coords, point)
+      return calculatedDistance === null
+        ? point
+        : { ...point, distance: formatDistance(calculatedDistance), calculatedDistance }
+    })
+    .sort((firstPoint, secondPoint) => {
+      if (firstPoint.calculatedDistance === undefined) return 1
+      if (secondPoint.calculatedDistance === undefined) return -1
+      return firstPoint.calculatedDistance - secondPoint.calculatedDistance
+    })
+
+  const getDistanceInKm = (point, coords) => {
+    const calculatedDistance = calculateDistance(coords, point)
+    if (calculatedDistance !== null) return calculatedDistance
+
+    const parsedDistance = Number.parseFloat(String(point.distance || '').replace(',', '.'))
+    return Number.isNaN(parsedDistance) ? null : parsedDistance
+  }
+
+  const filterPoints = (sourcePoints, nextFilters = filters, searchTerm = search, coords = locationState.coords) => {
+    const normalizedSearch = searchTerm.toLowerCase().trim()
+    const materialFilter = nextFilters.material.toLowerCase()
+    const maxDistance = nextFilters.maxDistance ? Number(nextFilters.maxDistance) : null
+    const preparedPoints = coords ? sortByDistance(sourcePoints, coords) : sourcePoints
+
+    return preparedPoints.filter((point) => {
+      const matchesSearch = !normalizedSearch
+        || point.name.toLowerCase().includes(normalizedSearch)
+        || point.city.toLowerCase().includes(normalizedSearch)
+        || point.address.toLowerCase().includes(normalizedSearch)
+      const matchesMaterial = !materialFilter
+        || point.materials?.some((material) => material.toLowerCase().includes(materialFilter))
+      const pointDistance = getDistanceInKm(point, coords)
+      const matchesDistance = maxDistance === null
+        || (pointDistance !== null && pointDistance <= maxDistance)
+
+      return matchesSearch && matchesMaterial && matchesDistance
+    })
+  }
+
+  const updateVisiblePoints = (nextFilters = filters, searchTerm = search, coords = locationState.coords) => {
+    const result = filterPoints(points, nextFilters, searchTerm, coords)
+    setFilteredPoints(result)
+    setSelectedPointId(result.length > 0 ? result[0].id : null)
+  }
+
+  const requestLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationState({ status: 'unavailable', coords: null, error: 'Seu navegador não oferece localização.' })
+      return
+    }
+
+    setLocationState({ status: 'requesting', coords: null, error: '' })
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const userCoords = { latitude: coords.latitude, longitude: coords.longitude }
+        setLocationState({ status: 'granted', coords: userCoords, error: '' })
+        updateVisiblePoints(filters, search, userCoords)
+      },
+      () => setLocationState({
+        status: 'denied',
+        coords: null,
+        error: 'Não foi possível acessar sua localização. Você pode buscar por cidade ou bairro.'
+      })
+    )
+  }
 
   // Busca os pontos da API ao carregar a página
   useEffect(() => {
@@ -28,24 +116,20 @@ const CollectionPoints = () => {
 
   // Filtra os pontos conforme o usuário digita na busca
   const handleSearch = () => {
-    const term = search.toLowerCase().trim()
-    if (!term) {
-      setFilteredPoints(points)
-      if (points.length > 0) setSelectedPointId(points[0].id)
-      return
-    }
-    const result = points.filter(
-      (p) =>
-        p.name.toLowerCase().includes(term) ||
-        p.city.toLowerCase().includes(term) ||
-        p.address.toLowerCase().includes(term)
-    )
-    setFilteredPoints(result)
-    if (result.length > 0) {
-      setSelectedPointId(result[0].id)
-    } else {
-      setSelectedPointId(null)
-    }
+    updateVisiblePoints(filters, search)
+  }
+
+  const handleFilterChange = (name, value) => {
+    const nextFilters = { ...filters, [name]: value }
+    setFilters(nextFilters)
+    updateVisiblePoints(nextFilters)
+  }
+
+  const clearFilters = () => {
+    const emptyFilters = { material: '', maxDistance: '' }
+    setSearch('')
+    setFilters(emptyFilters)
+    updateVisiblePoints(emptyFilters, '')
   }
 
   // Permite buscar ao apertar Enter
@@ -68,6 +152,13 @@ const CollectionPoints = () => {
   const directionsUrl = activePoint
     ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${activePoint.name}, ${activePoint.address}, ${activePoint.city}`)}`
     : '#'
+
+  const markerPositions = [
+    { top: '28%', left: '32%' },
+    { top: '44%', left: '58%' },
+    { top: '64%', left: '38%' },
+    { top: '70%', left: '72%' },
+  ]
 
   return (
     <>
@@ -103,6 +194,79 @@ const CollectionPoints = () => {
           </button>
         </div>
 
+        <div className="max-w-2xl mx-auto mb-8 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[#153D2C]">
+                {locationState.status === 'granted' ? 'Resultados ordenados pela sua localização' : 'Encontre o ponto mais próximo'}
+              </p>
+              <p className="mt-1 text-xs text-gray-600">
+                {locationState.status === 'requesting'
+                  ? 'Solicitando permissão de localização...'
+                  : locationState.error || 'Permita sua localização para calcular as distâncias.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={requestLocation}
+              disabled={locationState.status === 'requesting'}
+              className="shrink-0 rounded-lg bg-[#153D2C] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#1f5c42] disabled:cursor-wait disabled:opacity-60"
+            >
+              {locationState.status === 'granted' ? 'Atualizar localização' : 'Usar minha localização'}
+            </button>
+          </div>
+        </div>
+
+        <div className="max-w-4xl mx-auto mb-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+            <div className="flex-1">
+              <label htmlFor="material-filter" className="mb-1 block text-xs font-semibold text-gray-600">
+                Tipo de tecido
+              </label>
+              <select
+                id="material-filter"
+                value={filters.material}
+                onChange={(event) => handleFilterChange('material', event.target.value)}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 focus:border-[#153D2C] focus:outline-none"
+              >
+                <option value="">Todos os tecidos</option>
+                {[...new Set(points.flatMap((point) => point.materials || []))].map((material) => (
+                  <option key={material} value={material}>{material}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1">
+              <label htmlFor="distance-filter" className="mb-1 block text-xs font-semibold text-gray-600">
+                Distância máxima
+              </label>
+              <select
+                id="distance-filter"
+                value={filters.maxDistance}
+                onChange={(event) => handleFilterChange('maxDistance', event.target.value)}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 focus:border-[#153D2C] focus:outline-none"
+              >
+                <option value="">Qualquer distância</option>
+                <option value="5">Até 5 km</option>
+                <option value="10">Até 10 km</option>
+                <option value="20">Até 20 km</option>
+              </select>
+            </div>
+            <button
+              type="button"
+              onClick={clearFilters}
+              disabled={!filters.material && !filters.maxDistance && !search}
+              className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Limpar filtros
+            </button>
+          </div>
+          {filters.maxDistance && !locationState.coords && (
+            <p className="mt-3 text-xs text-gray-500">
+              A distância usa os valores disponíveis nos pontos. Permita sua localização para calcular distâncias precisas.
+            </p>
+          )}
+        </div>
+
         {/* Resultado + Layout de duas colunas */}
         {loading ? (
           <p className="text-center text-gray-500">Carregando pontos de coleta...</p>
@@ -122,8 +286,8 @@ const CollectionPoints = () => {
                     <button
                       onClick={() => {
                         setSearch('')
-                        setFilteredPoints(points)
-                        if (points.length > 0) setSelectedPointId(points[0].id)
+                        setFilters({ material: '', maxDistance: '' })
+                        updateVisiblePoints({ material: '', maxDistance: '' }, '')
                       }}
                       className="mt-3 text-[#153D2C] font-semibold text-sm hover:underline"
                     >
@@ -169,6 +333,25 @@ const CollectionPoints = () => {
                       loading="lazy"
                       referrerPolicy="no-referrer-when-downgrade"
                     />
+
+                    {filteredPoints.map((point, index) => {
+                      const position = markerPositions[index % markerPositions.length]
+                      const isActive = point.id === selectedPointId
+
+                      return (
+                        <button
+                          key={`marker-${point.id}`}
+                          type="button"
+                          aria-label={`Selecionar ${point.name} no mapa`}
+                          title={point.name}
+                          onClick={() => setSelectedPointId(point.id)}
+                          className={`absolute z-10 -translate-x-1/2 -translate-y-full transition-transform hover:scale-110 ${isActive ? 'scale-125' : ''}`}
+                          style={position}
+                        >
+                          <RiMapPinLine className={`drop-shadow-md ${point.status === 'PAUSADO' ? 'text-amber-600' : 'text-[#153D2C]'} text-3xl`} />
+                        </button>
+                      )
+                    })}
                   </div>
 
                   {/* Resumo do Ponto em Destaque */}
@@ -184,6 +367,12 @@ const CollectionPoints = () => {
                         <p className="text-xs text-gray-500 mt-0.5">
                           {activePoint.address} • {activePoint.city}
                         </p>
+                        <span className={`inline-flex mt-2 w-fit rounded-full px-2 py-1 text-[10px] font-bold uppercase ${activePoint.status === 'PAUSADO'
+                          ? 'bg-amber-50 text-amber-700'
+                          : 'bg-emerald-50 text-emerald-700'
+                          }`}>
+                          {activePoint.status === 'PAUSADO' ? 'Indisponível' : 'Recebendo'}
+                        </span>
                       </div>
 
                       <a

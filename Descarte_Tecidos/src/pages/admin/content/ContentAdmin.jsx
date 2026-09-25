@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { 
   RiPencilLine, 
   RiDeleteBinLine, 
@@ -14,49 +14,70 @@ import {
   RiListUnordered
 } from 'react-icons/ri'
 
+const DEFAULT_CONTENTS = [
+  {
+    id: 1,
+    titulo: 'O impacto da indústria têxtil no meio ambiente',
+    categoria: 'Sustentabilidade',
+    tags: ['sustentabilidade', 'meio ambiente'],
+    conteudo: 'Conteúdo educativo sobre os impactos da indústria têxtil.',
+    imagem: '',
+    status: 'Publicado',
+    data: '16/05/2026'
+  },
+  {
+    id: 2,
+    titulo: '5 dicas para reutilizar suas roupas',
+    categoria: 'Dicas',
+    tags: ['reutilização', 'dicas'],
+    conteudo: 'Dicas práticas para reaproveitar roupas e tecidos.',
+    imagem: '',
+    status: 'Publicado',
+    data: '10/05/2026'
+  },
+  {
+    id: 3,
+    titulo: 'O que é economia circular?',
+    categoria: 'Economia Circular',
+    tags: ['economia circular'],
+    conteudo: 'Introdução à economia circular no setor têxtil.',
+    imagem: '',
+    status: 'Publicado',
+    data: '14/05/2026'
+  },
+  {
+    id: 4,
+    titulo: 'Materiais têxteis sustentáveis',
+    categoria: 'Sustentabilidade',
+    tags: ['materiais', 'sustentabilidade'],
+    conteudo: 'Conheça materiais têxteis com menor impacto ambiental.',
+    imagem: '',
+    status: 'Rascunho',
+    data: '12/05/2026'
+  }
+]
+
 const ContentAdmin = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [editingId, setEditingId] = useState(null)
+  const [pendingDelete, setPendingDelete] = useState(null)
 
-  const [conteudos, setConteudos] = useState([
-    {
-      id: 1,
-      titulo: 'O impacto da indústria têxtil no meio ambiente',
-      categoria: 'Sustentabilidade',
-      status: 'Publicado',
-      data: '16/05/2026'
-    },
-    {
-      id: 2,
-      titulo: '5 dicas para reutilizar suas roupas',
-      categoria: 'Dicas',
-      status: 'Publicado',
-      data: '10/05/2026'
-    },
-    {
-      id: 3,
-      titulo: 'O que é economia circular?',
-      categoria: 'Economia Circular',
-      status: 'Publicado',
-      data: '14/05/2026'
-    },
-    {
-      id: 4,
-      titulo: 'Materiais têxteis sustentáveis',
-      categoria: 'Sustentabilidade',
-      status: 'Rascunho',
-      data: '12/05/2026'
-    }
-  ])
+  const [conteudos, setConteudos] = useState(() => {
+    const savedContents = localStorage.getItem('adminContents')
+    return savedContents ? JSON.parse(savedContents) : DEFAULT_CONTENTS
+  })
 
   const [formData, setFormData] = useState({
     titulo: '',
     categoria: '',
     imagem: null,
+    imagemPreview: '',
     conteudo: '',
+    tags: [],
     status: 'Publicado'
   })
+  const [tagsInput, setTagsInput] = useState('')
 
   const filteredConteudos = conteudos.filter(item =>
     item.titulo.toLowerCase().includes(searchTerm.toLowerCase())
@@ -64,7 +85,8 @@ const ContentAdmin = () => {
 
   const handleNovoConteudo = () => {
     setEditingId(null)
-    setFormData({ titulo: '', categoria: '', imagem: null, conteudo: '', status: 'Publicado' })
+    setFormData({ titulo: '', categoria: '', imagem: null, imagemPreview: '', conteudo: '', tags: [], status: 'Publicado' })
+    setTagsInput('')
     setIsModalOpen(true)
   }
 
@@ -74,41 +96,76 @@ const ContentAdmin = () => {
       titulo: item.titulo,
       categoria: item.categoria,
       imagem: null,
-      conteudo: 'Conteúdo simulado do banco de dados...', 
+      imagemPreview: item.imagem || '',
+      conteudo: item.conteudo || '',
+      tags: item.tags || [],
       status: item.status
     })
+    setTagsInput((item.tags || []).join(', '))
     setIsModalOpen(true)
   }
 
   const handleExcluir = (id) => {
-    if (window.confirm('Tem certeza que deseja excluir este conteúdo?')) {
-      setConteudos(conteudos.filter(item => item.id !== id))
-    }
+    const content = conteudos.find((item) => item.id === id)
+    setPendingDelete(content || null)
+  }
+
+  const handleRemoveTag = (tagToRemove) => {
+    const remainingTags = tagsInput
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter((tag) => tag && tag !== tagToRemove)
+
+    setTagsInput(remainingTags.join(', '))
+  }
+
+  const confirmDelete = () => {
+    if (!pendingDelete) return
+
+    const updatedContents = conteudos.filter(item => item.id !== pendingDelete.id)
+    const deletedContentIds = JSON.parse(localStorage.getItem('deletedContentIds') || '[]')
+    const updatedDeletedIds = [...new Set([...deletedContentIds, String(pendingDelete.id)])]
+
+    setConteudos(updatedContents)
+    localStorage.setItem('adminContents', JSON.stringify(updatedContents))
+    localStorage.setItem('deletedContentIds', JSON.stringify(updatedDeletedIds))
+    setPendingDelete(null)
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
     const hoje = new Date()
     const dataAtual = `${String(hoje.getDate()).padStart(2, '0')}/${String(hoje.getMonth() + 1).padStart(2, '0')}/${hoje.getFullYear()}`
+    const tags = tagsInput.split(',').map((tag) => tag.trim()).filter(Boolean)
+    const contentData = { ...formData, tags }
+    let updatedContents
 
     if (editingId) {
-      setConteudos(conteudos.map(c => 
+      updatedContents = conteudos.map(c => 
         c.id === editingId 
-        ? { ...c, titulo: formData.titulo, categoria: formData.categoria, status: formData.status } 
+        ? { ...c, titulo: contentData.titulo, categoria: contentData.categoria, tags: contentData.tags, conteudo: contentData.conteudo, imagem: contentData.imagemPreview, status: contentData.status } 
         : c
-      ))
+      )
     } else {
       const novoConteudo = {
         id: Math.random(),
-        titulo: formData.titulo,
-        categoria: formData.categoria,
-        status: formData.status,
+        titulo: contentData.titulo,
+        categoria: contentData.categoria,
+        tags: contentData.tags,
+        conteudo: contentData.conteudo,
+        imagem: contentData.imagemPreview,
+        status: contentData.status,
         data: dataAtual
       }
-      setConteudos([novoConteudo, ...conteudos])
+      updatedContents = [novoConteudo, ...conteudos]
     }
 
+    setConteudos(updatedContents)
+    localStorage.setItem('adminContents', JSON.stringify(updatedContents))
     setIsModalOpen(false)
+    setEditingId(null)
+    setFormData({ titulo: '', categoria: '', imagem: null, imagemPreview: '', conteudo: '', tags: [], status: 'Publicado' })
+    setTagsInput('')
   }
 
   return (
@@ -167,10 +224,10 @@ const ContentAdmin = () => {
                   <td className="px-6 py-4">{item.data}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3 text-lg">
-                      <button onClick={() => handleEditar(item)} className="text-orange-500 hover:text-orange-700 transition-colors cursor-pointer" title="Editar">
+                      <button onClick={() => handleEditar(item)} aria-label={`Editar ${item.titulo}`} className="rounded text-orange-500 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 transition-colors cursor-pointer" title="Editar">
                         <RiPencilLine />
                       </button>
-                      <button onClick={() => handleExcluir(item.id)} className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer" title="Excluir">
+                      <button onClick={() => handleExcluir(item.id)} aria-label={`Excluir ${item.titulo}`} className="rounded text-gray-400 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 transition-colors cursor-pointer" title="Excluir">
                         <RiDeleteBinLine />
                       </button>
                     </div>
@@ -188,13 +245,13 @@ const ContentAdmin = () => {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl relative flex flex-col max-h-[90vh]">
+          <div role="dialog" aria-modal="true" aria-labelledby="content-modal-title" className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl relative flex flex-col max-h-[90vh]">
             
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-900">
+              <h2 id="content-modal-title" className="text-lg font-bold text-gray-900">
                 {editingId ? 'Editar conteúdo' : 'Novo conteúdo'}
               </h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-700 text-xl cursor-pointer">
+              <button onClick={() => setIsModalOpen(false)} aria-label="Fechar editor de conteúdo" className="rounded text-gray-400 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-700 focus-visible:ring-offset-2 text-xl cursor-pointer">
                 <RiCloseLine />
               </button>
             </div>
@@ -232,6 +289,36 @@ const ContentAdmin = () => {
                 </div>
 
                 <div>
+                  <label htmlFor="content-tags" className="block font-semibold text-gray-700 mb-1">Tags</label>
+                  <input
+                    id="content-tags"
+                    type="text"
+                    placeholder="Ex.: reciclagem, doação, sustentabilidade"
+                    value={tagsInput}
+                    onChange={(e) => setTagsInput(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#123C2C]"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">Separe as tags por vírgulas.</p>
+                  {tagsInput && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {tagsInput.split(',').map((tag) => tag.trim()).filter(Boolean).map((tag, index) => (
+                        <span key={`${tag}-${index}`} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                          #{tag}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTag(tag)}
+                            aria-label={`Remover tag ${tag}`}
+                            className="text-emerald-600 hover:text-red-600"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
                   <label className="block font-semibold text-gray-700 mb-1">Imagem de destaque</label>
                   <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -244,10 +331,19 @@ const ContentAdmin = () => {
                       type="file" 
                       className="hidden" 
                       accept="image/png, image/jpeg"
-                      onChange={(e) => setFormData({...formData, imagem: e.target.files[0]})}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        const reader = new FileReader()
+                        reader.onload = () => setFormData({ ...formData, imagem: file, imagemPreview: reader.result })
+                        reader.readAsDataURL(file)
+                      }}
                     />
                   </label>
                   {formData.imagem && <p className="text-xs text-emerald-600 mt-1">Arquivo selecionado: {formData.imagem.name}</p>}
+                  {formData.imagemPreview && (
+                    <img src={formData.imagemPreview} alt="Prévia da imagem do conteúdo" className="mt-3 h-24 w-full rounded-lg object-cover" />
+                  )}
                 </div>
 
                 <div>
@@ -255,17 +351,17 @@ const ContentAdmin = () => {
                   <div className="border border-gray-200 rounded-lg overflow-hidden focus-within:border-[#123C2C] transition-colors">
 
                     <div className="bg-gray-50 border-b border-gray-200 flex items-center px-3 py-2 gap-3 text-gray-500 text-lg">
-                      <button type="button" className="hover:text-gray-800 transition-colors cursor-pointer"><RiBold /></button>
-                      <button type="button" className="hover:text-gray-800 transition-colors cursor-pointer"><RiItalic /></button>
-                      <button type="button" className="hover:text-gray-800 transition-colors cursor-pointer"><RiUnderline /></button>
+                      <button type="button" aria-label="Negrito" title="Negrito" className="rounded hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123C2C] transition-colors cursor-pointer"><RiBold /></button>
+                      <button type="button" aria-label="Itálico" title="Itálico" className="rounded hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123C2C] transition-colors cursor-pointer"><RiItalic /></button>
+                      <button type="button" aria-label="Sublinhado" title="Sublinhado" className="rounded hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123C2C] transition-colors cursor-pointer"><RiUnderline /></button>
                       <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                      <button type="button" className="hover:text-gray-800 transition-colors cursor-pointer"><RiLink /></button>
+                      <button type="button" aria-label="Inserir link" title="Inserir link" className="rounded hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123C2C] transition-colors cursor-pointer"><RiLink /></button>
                       <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                      <button type="button" className="hover:text-gray-800 transition-colors cursor-pointer"><RiAlignLeft /></button>
-                      <button type="button" className="hover:text-gray-800 transition-colors cursor-pointer"><RiAlignCenter /></button>
-                      <button type="button" className="hover:text-gray-800 transition-colors cursor-pointer"><RiAlignRight /></button>
+                      <button type="button" aria-label="Alinhar à esquerda" title="Alinhar à esquerda" className="rounded hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123C2C] transition-colors cursor-pointer"><RiAlignLeft /></button>
+                      <button type="button" aria-label="Centralizar" title="Centralizar" className="rounded hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123C2C] transition-colors cursor-pointer"><RiAlignCenter /></button>
+                      <button type="button" aria-label="Alinhar à direita" title="Alinhar à direita" className="rounded hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123C2C] transition-colors cursor-pointer"><RiAlignRight /></button>
                       <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                      <button type="button" className="hover:text-gray-800 transition-colors cursor-pointer"><RiListUnordered /></button>
+                      <button type="button" aria-label="Lista com marcadores" title="Lista com marcadores" className="rounded hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123C2C] transition-colors cursor-pointer"><RiListUnordered /></button>
                     </div>
 
                     <textarea
@@ -313,6 +409,45 @@ const ContentAdmin = () => {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {pendingDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 id="delete-modal-title" className="text-lg font-bold text-gray-900">Excluir conteúdo?</h2>
+                <p className="mt-2 text-sm leading-relaxed text-gray-500">
+                  O conteúdo <strong className="text-gray-700">{pendingDelete.titulo}</strong> deixará de aparecer para os usuários.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                className="rounded text-xl text-gray-400 transition-colors hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-700 focus-visible:ring-offset-2"
+                aria-label="Fechar confirmação"
+              >
+                <RiCloseLine />
+              </button>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700"
+              >
+                Excluir conteúdo
+              </button>
+            </div>
           </div>
         </div>
       )}

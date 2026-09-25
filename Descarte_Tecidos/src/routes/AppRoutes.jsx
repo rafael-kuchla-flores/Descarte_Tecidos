@@ -53,7 +53,7 @@ function AppRoutes() {
       <Route path="/redefinir-senha/nova" element={<NewPassword />} />
 
       {/* admin */}
-      <Route element={<ProtectedRoute adminOnly={true} />}>
+      <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<DashBoard />} />
           <Route path="/admin/campaigns" element={<CampaignsAdmin />} />
@@ -65,7 +65,7 @@ function AppRoutes() {
       <Route path="/acesso-negado" element={<AccessDenied />} />
 
       {/* Manager */}
-      <Route element={<ProtectedRoute managerOnly={true} />}>
+      <Route element={<ProtectedRoute allowedRoles={['MANAGER']} />}>
         <Route path="/manager" element={<ManagerLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<ManagerDashboard />} />
@@ -78,7 +78,7 @@ function AppRoutes() {
       </Route>
 
       {/* Operator */}
-      <Route element={<ProtectedRoute operatorOnly={true} />}>
+      <Route element={<ProtectedRoute allowedRoles={['OPERATOR']} />}>
         <Route path="/operator" element={<OperatorLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<OperatorDashboard />} />

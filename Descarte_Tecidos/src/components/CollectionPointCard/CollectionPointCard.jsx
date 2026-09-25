@@ -50,6 +50,13 @@ function CollectionPointCard({ point, isSelected = false, onSelect }) {
                     </div>
                 </div>
 
+                <span className={`shrink-0 inline-flex items-center rounded-full px-2 py-1 text-[10px] font-bold uppercase ${point.status === 'PAUSADO'
+                    ? 'bg-amber-50 text-amber-700'
+                    : 'bg-emerald-50 text-emerald-700'
+                    }`}>
+                    {point.status === 'PAUSADO' ? 'Indisponível' : 'Recebendo'}
+                </span>
+
                 <button
                     type="button"
                     onClick={handleFavoriteClick}
