@@ -16,7 +16,6 @@ const OperatorLayout = () => {
   const navigate = useNavigate()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  // Variável para o nome do usuário
   const nome = user?.name || 'Carlos Almeida'
 
   const handleLogout = () => {
@@ -68,7 +67,6 @@ const OperatorLayout = () => {
           </button>
         </div>
         
-        {/* Bloco de Perfil do Operador */}
         <div className="px-6 pb-5 mb-4 border-b border-emerald-900/40">
           <h2 className="font-bold text-sm text-white">{nome}</h2>
           <p className="text-xs text-emerald-200/60 mt-0.5">Operador</p>

@@ -31,6 +31,8 @@ import Operators from "../pages/manager/operators/Operators.jsx";
 import Receipts from "../pages/manager/receipts/Receipts.jsx";
 // Operator
 import OperatorLayout from "../components/operatorlayout/OperatorLayout.jsx";
+import OperatorDashboard from "../pages/operator/dashboard/OperatorDashboard.jsx";
+import ReceiveMaterial from "../pages/operator/dashboard/ReceiveMaterial.jsx";
 
 
 function AppRoutes() {
@@ -77,7 +79,9 @@ function AppRoutes() {
       {/* Operator */}
       <Route path="/operator" element={<OperatorLayout />}>
         <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<ManagerDashboard />} />
+        <Route path="dashboard" element={<OperatorDashboard />} />
+        <Route path="receber" element={<ReceiveMaterial />} />
+
       </Route>
     </Routes>
   );
