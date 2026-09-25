@@ -7,6 +7,7 @@ import CollectionPointDetail from "../pages/main/collectionpoints/CollectionPoin
 import Campaigns from "../pages/main/campaigns/Campaigns.jsx";
 import CampaignDetail from "../pages/main/campaigns/CampaignDetail.jsx";
 import Content from "../pages/main/content/Content.jsx";
+import ContentDetail from "../pages/main/content/ContentDetail.jsx";
 import Login from "../pages/auth/login/Login.jsx";
 import Register from "../pages/auth/register/Register.jsx";
 import PasswordReset from "../pages/auth/password-reset/PasswordReset.jsx";
@@ -47,6 +48,7 @@ function AppRoutes() {
       <Route path="/campanhas" element={<Campaigns />} />
       <Route path="/campanhas/:id" element={<CampaignDetail />} />
       <Route path="/conteudos" element={<Content />} />
+      <Route path="/conteudos/:id" element={<ContentDetail />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/redefinir-senha" element={<PasswordReset />} />
