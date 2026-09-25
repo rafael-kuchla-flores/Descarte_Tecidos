@@ -28,6 +28,7 @@ import ManagerCollectionPoint from "../pages/manager/collection-point/Collection
 import Schedules from "../pages/manager/schedules/Schedules.jsx";
 import AcceptedFabrics from "../pages/manager/accepted-fabrics/AcceptedFabrics.jsx";
 import Operators from "../pages/manager/operators/Operators.jsx";
+import Receipts from "../pages/manager/receipts/Receipts.jsx";
 
 
 function AppRoutes() {
@@ -67,6 +68,7 @@ function AppRoutes() {
         <Route path="schedules" element={<Schedules />} />
         <Route path="accepted-fabrics" element={<AcceptedFabrics />} />
         <Route path="operators" element={<Operators />} />
+        <Route path="recebimentos" element={<Receipts />} />
       </Route>
       {/* </Route> */}
     </Routes>

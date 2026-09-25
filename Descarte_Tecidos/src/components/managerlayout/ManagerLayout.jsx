@@ -9,7 +9,6 @@ import {
   RiShirtLine, 
   RiUser3Line, 
   RiBox3Line, 
-  RiBarChartBoxLine,
   RiLogoutBoxLine,
   RiArrowDownSLine,
   RiMenuLine,
@@ -36,7 +35,7 @@ const ManagerLayout = () => {
     { name: 'Tipos de Tecidos', icon: RiShirtLine, path: '/manager/accepted-fabrics' },
     { name: 'Operadores', icon: RiUser3Line, path: '/manager/operators' },
     { name: 'Recebimentos', icon: RiBox3Line, path: '/manager/recebimentos' },
-    { name: 'Relatórios', icon: RiBarChartBoxLine, path: '/manager/relatorios' },
+
   ]
 
   const navLinkClass = ({ isActive }) =>
