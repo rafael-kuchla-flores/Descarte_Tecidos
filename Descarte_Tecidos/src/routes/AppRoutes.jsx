@@ -33,6 +33,7 @@ import Receipts from "../pages/manager/receipts/Receipts.jsx";
 import OperatorLayout from "../components/operatorlayout/OperatorLayout.jsx";
 import OperatorDashboard from "../pages/operator/dashboard/OperatorDashboard.jsx";
 import ReceiveMaterial from "../pages/operator/dashboard/ReceiveMaterial.jsx";
+import ReceiptsOperator from "../pages/operator/receipts/Receipts.jsx";
 
 
 function AppRoutes() {
@@ -64,24 +65,26 @@ function AppRoutes() {
       <Route path="/acesso-negado" element={<AccessDenied />} />
 
       {/* Manager */}
-      {/* <Route element={<ProtectedRoute managerOnly={true} />}> */}
-      <Route path="/manager" element={<ManagerLayout />}>
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<ManagerDashboard />} />
-        <Route path="collection-point" element={<ManagerCollectionPoint />} />
-        <Route path="schedules" element={<Schedules />} />
-        <Route path="accepted-fabrics" element={<AcceptedFabrics />} />
-        <Route path="operators" element={<Operators />} />
-        <Route path="recebimentos" element={<Receipts />} />
+      <Route element={<ProtectedRoute managerOnly={true} />}>
+        <Route path="/manager" element={<ManagerLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<ManagerDashboard />} />
+          <Route path="collection-point" element={<ManagerCollectionPoint />} />
+          <Route path="schedules" element={<Schedules />} />
+          <Route path="accepted-fabrics" element={<AcceptedFabrics />} />
+          <Route path="operators" element={<Operators />} />
+          <Route path="recebimentos" element={<Receipts />} />
+        </Route>
       </Route>
-      {/* </Route> */}
 
       {/* Operator */}
-      <Route path="/operator" element={<OperatorLayout />}>
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<OperatorDashboard />} />
-        <Route path="receber" element={<ReceiveMaterial />} />
-
+      <Route element={<ProtectedRoute operatorOnly={true} />}>
+        <Route path="/operator" element={<OperatorLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<OperatorDashboard />} />
+          <Route path="receber" element={<ReceiveMaterial />} />
+          <Route path="recebimentos" element={<ReceiptsOperator />} />
+        </Route>
       </Route>
     </Routes>
   );
