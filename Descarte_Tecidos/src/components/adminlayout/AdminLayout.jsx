@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { NavLink, useNavigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth' 
 import { 
@@ -6,9 +6,9 @@ import {
   RiHome4Line, 
   RiUser3Line, 
   RiMapPinLine, 
+  RiShirtLine,
   RiMegaphoneLine, 
   RiFileTextLine, 
-  RiSettings4Line, 
   RiLogoutBoxLine,
   RiArrowDownSLine,
   RiMenuLine,
@@ -74,6 +74,9 @@ const AdminLayout = () => {
           </NavLink>
           <NavLink to="/admin/collect-points" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
             <RiMapPinLine className="text-lg" /> Pontos de coleta
+          </NavLink>
+          <NavLink to="/admin/cloth-types" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
+            <RiShirtLine className="text-lg" /> Tipos de tecido
           </NavLink>
           <NavLink to="/admin/campaigns" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
             <RiMegaphoneLine className="text-lg" /> Campanhas

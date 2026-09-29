@@ -4,7 +4,7 @@ import Header from '../../../components/Header/Header'
 import CollectionPointCard from '../../../components/CollectionPointCard/CollectionPointCard'
 import collectionPointService from '../../../services/collectionPointService'
 
-const CollectionPoints = () => {
+export default function CollectionPoints() {
   const [points, setPoints] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -103,13 +103,19 @@ const CollectionPoints = () => {
   useEffect(() => {
     const fetchPoints = async () => {
       setLoading(true)
-      const data = await collectionPointService.getCollectionPoints()
-      setPoints(data)
-      setFilteredPoints(data)
-      if (data.length > 0) {
-        setSelectedPointId(data[0].id)
+      try {
+        const data = await collectionPointService.getCollectionPoints()
+        setPoints(data)
+        setFilteredPoints(data)
+        setSelectedPointId(data.length > 0 ? data[0].id : null)
+      } catch (error) {
+        console.error('Erro ao carregar pontos de coleta:', error)
+        setPoints([])
+        setFilteredPoints([])
+        setSelectedPointId(null)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     fetchPoints()
   }, [])
@@ -401,5 +407,3 @@ const CollectionPoints = () => {
     </>
   )
 }
-
-export default CollectionPoints

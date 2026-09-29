@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   RiSearchLine,
   RiUserAddLine,
@@ -8,6 +8,13 @@ import {
   RiCloseLine
 } from 'react-icons/ri'
 import userService from '../../../services/userService'
+
+const roleOptions = [
+  { value: 'DOADOR', label: 'Doador' },
+  { value: 'ADMIN', label: 'Administrador' },
+  { value: 'PONTO_COLETA_GERENTE', label: 'Gerente de ponto' },
+  { value: 'PONTO_COLETA_OPERADOR', label: 'Operador de ponto' },
+]
 
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -23,15 +30,13 @@ const Users = () => {
     email: '',
     cpf: '',
     phone: '',
-    password: '',
-    role: 'DOADOR'
+    roles: ['DOADOR'],
   })
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const fetchUsers = async () => {
     try {
-      setLoading(true)
       const data = await userService.getUsers()
       const list = Array.isArray(data) ? data : data?.content || []
       setUsersList(list)
@@ -56,8 +61,7 @@ const Users = () => {
       email: user.email,
       cpf: user.document,
       phone: user.phone || '',
-      password: '',
-      role: user.roles && user.roles.includes('ADMIN') ? 'ADMIN' : 'DOADOR'
+      roles: user.roles || ['DOADOR'],
     })
     setIsModalOpen(true)
   }
@@ -67,23 +71,21 @@ const Users = () => {
     e.preventDefault()
     setFormError('')
 
-    let formattedPhone = formData.phone;
-    if (formattedPhone && !formattedPhone.startsWith('+')) {
-      formattedPhone = `+55${formattedPhone}`;
+    if (formData.roles.length === 0) {
+      setFormError('Selecione ao menos um perfil para o usuário.')
+      return
     }
+
+    const phoneDigits = formData.phone.replace(/\D/g, '')
+    const formattedPhone = formData.phone.startsWith('+') ? `+${phoneDigits}` : `+55${phoneDigits}`
 
     const dataToSend = {
       name: formData.name,
       email: formData.email,
       phone: formattedPhone,
       document: formData.cpf,
-      roles: [formData.role]
+      roles: formData.roles,
     };
-
-
-    if (!editingId) {
-      dataToSend.password = formData.password;
-    }
 
     try {
       setSubmitting(true)
@@ -96,7 +98,7 @@ const Users = () => {
 
       setIsModalOpen(false)
       setEditingId(null)
-      setFormData({ name: '', email: '', cpf: '', phone: '', password: '', role: 'DOADOR' })
+      setFormData({ name: '', email: '', cpf: '', phone: '', roles: ['DOADOR'] })
       fetchUsers()
     } catch (err) {
       console.error(err)
@@ -130,10 +132,7 @@ const Users = () => {
       (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
 
 
-    const userRole = (user.roles || []).join(',').toUpperCase()
-
-    if (roleFilter === 'Doador') return matchesSearch && userRole.includes('DOADOR')
-    if (roleFilter === 'Administrador') return matchesSearch && userRole.includes('ADMIN')
+    if (roleFilter !== 'Todos os tipos') return matchesSearch && (user.roles || []).includes(roleFilter)
 
     return matchesSearch
   })
@@ -179,8 +178,7 @@ const Users = () => {
               className="w-full appearance-none rounded-xl border border-gray-200 bg-white py-2.5 pl-4 pr-10 text-sm text-gray-800 focus:border-[#123C2C] focus:outline-none transition-colors cursor-pointer"
             >
               <option value="Todos os tipos">Todos os tipos</option>
-              <option value="Doador">Doador</option>
-              <option value="Administrador">Administrador</option>
+              {roleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
             </select>
             <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
               <RiArrowDownSLine className="text-lg" />
@@ -214,7 +212,7 @@ const Users = () => {
                     <td className="py-4 px-6 font-medium text-gray-900">{user.name}</td>
                     <td className="py-4 px-6 text-gray-500">{user.email}</td>
                     <td className="py-4 px-6 text-gray-600">
-                      {user.roles && user.roles.includes('ADMIN') ? 'Administrador' : 'Doador'}
+                      {(user.roles || []).map((role) => roleOptions.find((option) => option.value === role)?.label || role).join(', ') || 'Sem perfil'}
                     </td>
                     <td className="py-4 px-6">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${user.active !== false ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
@@ -225,7 +223,6 @@ const Users = () => {
 
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2">
-
                         <button
                           onClick={() => handleEditClick(user)}
                           className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
@@ -233,12 +230,6 @@ const Users = () => {
                         >
                           <RiPencilLine className="text-lg" />
                         </button>
-                      </div>
-                    </td>
-
-
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleDelete(user.id)}
                           className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
@@ -317,9 +308,10 @@ const Users = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Telefone</label>
+                  <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Telefone *</label>
                   <input
                     type="text"
+                    required
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="(00) 00000-0000"
@@ -328,29 +320,24 @@ const Users = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Senha Inicial *</label>
-                  <input
-                    type="password"
-                    required={!editingId}
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="Mínimo de caracteres"
-                    className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 focus:border-[#123C2C] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Papel (Role) *</label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-[#123C2C] focus:outline-none cursor-pointer"
-                  >
-                    <option value="DOADOR">Doador (DOADOR)</option>
-                    <option value="ADMIN">Administrador (ADMIN)</option>
-                  </select>
+              <div>
+                <span className="mb-2 block text-xs font-semibold text-gray-600 uppercase">Perfis de acesso *</span>
+                <div className="grid grid-cols-2 gap-3">
+                  {roleOptions.map((role) => (
+                    <label key={role.value} className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={formData.roles.includes(role.value)}
+                        onChange={(event) => setFormData((current) => ({
+                          ...current,
+                          roles: event.target.checked
+                            ? [...current.roles, role.value]
+                            : current.roles.filter((value) => value !== role.value),
+                        }))}
+                      />
+                      {role.label}
+                    </label>
+                  ))}
                 </div>
               </div>
 

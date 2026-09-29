@@ -34,9 +34,9 @@ const Login = () => {
       if (role === 'ADMIN') {
         navigate('/admin')
 
-      } else if (role === 'MANAGER') {
+      } else if (role === 'PONTO_COLETA_GERENTE') {
         navigate('/manager/dashboard')
-      } else if (role === 'OPERATOR') {
+      } else if (role === 'PONTO_COLETA_OPERADOR') {
         navigate('/operator/dashboard')
       } else {
         navigate('/')

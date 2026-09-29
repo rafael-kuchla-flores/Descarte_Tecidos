@@ -10,28 +10,32 @@ const login = async (email, password) => {
   })
 }
 
-
 const getMe = async (token) => {
   return await api('/user', {
     method: 'GET',
     headers: {
-      Authorization: `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   })
 }
+
 const register = async (userData) => {
   return await api('/register', {
     method: 'POST',
-    body: JSON.stringify(userData),
+    body: JSON.stringify({
+      name: userData.name,
+      document: userData.document,
+      email: userData.email,
+      password: userData.password,
+      phone: userData.phone,
+    }),
   })
 }
 
 const forgotPassword = async (email) => {
   return await api('/auth/forgot-password', {
     method: 'POST',
-    body: JSON.stringify({
-      email,
-    }),
+    body: JSON.stringify({ email }),
   })
 }
 
@@ -40,8 +44,15 @@ const resetPassword = async (token, newPassword) => {
     method: 'POST',
     body: JSON.stringify({
       token,
-      newPassword, 
+      newPassword,
     }),
+  })
+}
+
+const checkResetToken = async (token) => {
+  return await api('/auth/forgot-password/check-token', {
+    method: 'GET',
+    params: { token },
   })
 }
 
@@ -51,6 +62,7 @@ const authService = {
   forgotPassword,
   resetPassword,
   getMe,
+  checkResetToken,
 }
 
 export default authService

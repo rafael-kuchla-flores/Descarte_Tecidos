@@ -1,29 +1,64 @@
-import api from './api'
+import api, { getAllPages } from './api'
 
-const getPontos = async () => {
+const getPontos = async (params = {}) => getAllPages('/admin/collection-points', params)
 
-  return await api('/collect-points', { method: 'GET' })
-}
+const getPontosPendentes = async (params = {}) => getAllPages('/admin/collection-points/pending', params)
 
-const createPonto = async (pontoData) => {
-  return await api('/collect-points', {
+const getClothTypes = async (params = {}) => getAllPages('/admin/cloth-types', params)
+
+const createClothType = async (clothType) => api('/admin/cloth-types', {
+  method: 'POST',
+  body: JSON.stringify(clothType),
+})
+
+const updateClothType = async (id, clothType) => api(`/admin/cloth-types/${id}`, {
+  method: 'PATCH',
+  body: JSON.stringify(clothType),
+})
+
+const getPontoById = async (id) => api(`/admin/collection-points/${id}`, { method: 'GET' })
+
+const createPonto = async (pointData) => {
+  return await api('/admin/collection-points', {
     method: 'POST',
-    body: JSON.stringify(pontoData),
+    body: JSON.stringify(pointData),
   })
 }
 
-const toggleStatus = async (id, novoStatus) => {
-
-  return await api(`/collect-points/${id}`, {
+const updatePonto = async (id, pointData) => {
+  return await api(`/admin/collection-points/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ status: novoStatus }),
+    body: JSON.stringify(pointData),
+  })
+}
+
+const approvePonto = async (id) => {
+  return await api(`/admin/collection-points/${id}/approve`, { method: 'PATCH' })
+}
+
+const rejectPonto = async (id) => {
+  return await api(`/admin/collection-points/${id}/reject`, { method: 'PATCH' })
+}
+
+const toggleStatus = async (id, status) => {
+  return await api(`/admin/collection-points/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
   })
 }
 
 const pontosService = {
   getPontos,
+  getPontosPendentes,
+  getClothTypes,
+  createClothType,
+  updateClothType,
+  getPontoById,
   createPonto,
-  toggleStatus
+  updatePonto,
+  approvePonto,
+  rejectPonto,
+  toggleStatus,
 }
 
 export default pontosService

@@ -20,6 +20,7 @@ import CampaignsAdmin from "../pages/admin/campaigns/CampaignsAdmin.jsx";
 import CollectionPoints from "../pages/admin/collection-points/CollectionPoints.jsx";
 import UsersAdmin from "../pages/admin/users/Users.jsx";
 import ContentAdmin from "../pages/admin/content/ContentAdmin.jsx";
+import ClothTypesAdmin from "../pages/admin/cloth-types/ClothTypes.jsx";
 //acess denied
 import AccessDenied from "../pages/access-denied/AccessDenied.jsx";
 // Manager
@@ -60,6 +61,7 @@ function AppRoutes() {
           <Route path="/admin" element={<DashBoard />} />
           <Route path="/admin/campaigns" element={<CampaignsAdmin />} />
           <Route path="/admin/collect-points" element={<CollectionPoints />} />
+          <Route path="/admin/cloth-types" element={<ClothTypesAdmin />} />
           <Route path="/admin/users" element={<UsersAdmin />} />
           <Route path="/admin/content" element={<ContentAdmin />} />
         </Route>
@@ -67,7 +69,7 @@ function AppRoutes() {
       <Route path="/acesso-negado" element={<AccessDenied />} />
 
       {/* Manager */}
-      <Route element={<ProtectedRoute allowedRoles={['MANAGER']} />}>
+      <Route element={<ProtectedRoute allowedRoles={['PONTO_COLETA_GERENTE']} />}>
         <Route path="/manager" element={<ManagerLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<ManagerDashboard />} />
@@ -80,7 +82,7 @@ function AppRoutes() {
       </Route>
 
       {/* Operator */}
-      <Route element={<ProtectedRoute allowedRoles={['OPERATOR']} />}>
+      <Route element={<ProtectedRoute allowedRoles={['PONTO_COLETA_OPERADOR']} />}>
         <Route path="/operator" element={<OperatorLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<OperatorDashboard />} />

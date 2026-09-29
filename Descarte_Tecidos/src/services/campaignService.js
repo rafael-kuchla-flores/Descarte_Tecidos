@@ -1,4 +1,3 @@
-import api from './api'
 import collectionPointService from './collectionPointService'
 
 // Campanhas mockadas com fidelidade ao design do projeto
@@ -138,33 +137,13 @@ const normalizeCampaign = (campaign) => {
 
 // 1. Obter todas as campanhas
 const getCampaigns = async () => {
-  try {
-    const data = await api('/campaigns', { method: 'GET' })
-    const list = Array.isArray(data) ? data : data?.content || []
-    if (list.length > 0) {
-      return list.map(normalizeCampaign)
-    }
-    return MOCK_CAMPAIGNS.map(normalizeCampaign)
-  } catch (error) {
-    console.warn('API de campanhas indisponível ou necessita autenticação. Usando dados locais:', error)
-    return MOCK_CAMPAIGNS.map(normalizeCampaign)
-  }
+  return MOCK_CAMPAIGNS.map(normalizeCampaign)
 }
 
 // 2. Obter campanha específica por ID
 const getCampaignById = async (id) => {
-  try {
-    const data = await api(`/campaigns/${id}`, { method: 'GET' })
-    if (data && data.id) {
-      return normalizeCampaign(data)
-    }
-  } catch (error) {
-    console.warn(`Não foi possível buscar a campanha ${id} na API. Usando dados locais:`, error)
-  }
-
-  // Fallback: busca no mock local
   const found = MOCK_CAMPAIGNS.find((c) => String(c.id) === String(id))
-  return found ? normalizeCampaign(found) : normalizeCampaign(MOCK_CAMPAIGNS[0])
+  return found ? normalizeCampaign(found) : null
 }
 
 // 3. Cruzar campanha com os Pontos de Coleta reais
@@ -184,7 +163,7 @@ const getParticipatingPoints = async (campaign) => {
     return filtered.length > 0 ? filtered : allPoints.slice(0, 3)
   } catch (error) {
     console.error('Erro ao cruzar pontos participantes:', error)
-    return collectionPointService.MOCK_POINTS.slice(0, 3)
+    return []
   }
 }
 

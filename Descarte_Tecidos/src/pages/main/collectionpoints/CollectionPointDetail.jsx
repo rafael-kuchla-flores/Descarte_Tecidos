@@ -120,16 +120,20 @@ const CollectionPointDetail = () => {
                                 <RiTimeLine className="text-red-500 text-lg shrink-0" />
                                 <span>{point.hours}</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <RiPhoneLine className="text-red-500 text-lg shrink-0" />
-                                <span>{point.phone}</span>
-                            </div>
+                            {point.phone && (
+                                <div className="flex items-center gap-2">
+                                    <RiPhoneLine className="text-red-500 text-lg shrink-0" />
+                                    <span>{point.phone}</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Descrição */}
-                        <p className="text-gray-600 text-sm leading-relaxed">
-                            {point.description}
-                        </p>
+                        {point.description && (
+                            <p className="text-gray-600 text-sm leading-relaxed">
+                                {point.description}
+                            </p>
+                        )}
 
                         {/* Cards lado a lado: Endereço e Materiais aceitos */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

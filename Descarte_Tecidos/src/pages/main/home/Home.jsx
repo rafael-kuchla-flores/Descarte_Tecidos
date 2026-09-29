@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import Header from '../../../components/Header/Header'
 import Footer from '../../../components/footer/Footer'
 import { Link } from 'react-router-dom'
@@ -10,19 +10,11 @@ import {
   RiLeafLine,
   RiEarthLine,
   RiBuildingLine,
-  RiStore2Line,
 } from 'react-icons/ri'
 import heroFabrics from '../../../assets/images/hero-fabrics.jpg'
 import clothesImage from '../../../assets/images/image.png'
 import collectionPointService from '../../../services/collectionPointService'
 import campaignService from '../../../services/campaignService'
-
-const ICONS = {
-  building: RiBuildingLine,
-  recycle: RiRecycleLine,
-  factory: RiStore2Line,
-  leaf: RiLeafLine,
-}
 
 const Home = () => {
   const [nearbyPoints, setNearbyPoints] = useState([])
@@ -37,19 +29,19 @@ const Home = () => {
   useEffect(() => {
     const loadHomeData = async () => {
       try {
-        // Carrega campanha dinâmica via service/API
-        const campaign = await campaignService.getCampaignById(1)
-        if (campaign) {
-          setFeaturedCampaign((prev) => ({
-            ...prev,
-            ...campaign,
-            image: campaign.image || clothesImage,
-          }))
-        }
+        const points = await collectionPointService.getCollectionPoints({ size: 3 })
+        setNearbyPoints(points)
 
-        // Carrega pontos de coleta próximos
-        const points = await collectionPointService.getCollectionPoints()
-        setNearbyPoints(points.slice(0, 3))
+        if (campaignService?.getCampaignById) {
+          const campaign = await campaignService.getCampaignById(1)
+          if (campaign) {
+            setFeaturedCampaign((prev) => ({
+              ...prev,
+              ...campaign,
+              image: campaign.image || clothesImage,
+            }))
+          }
+        }
       } catch (error) {
         console.warn('Erro ao carregar dados dinâmicos da Home:', error)
       }
@@ -90,9 +82,7 @@ const Home = () => {
       <Header />
 
       <main className="flex-1">
-        {/* HERO SECTION */}
         <section className="bg-[#0f382c] grid grid-cols-1 lg:grid-cols-2">
-          {/* COLUNA 1 */}
           <div className="p-8 md:p-12 lg:p-16 flex flex-col justify-center">
             <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight">
               Dê um novo destino para os seus tecidos.
@@ -118,7 +108,6 @@ const Home = () => {
             </div>
           </div>
 
-          {/* COLUNA 2 */}
           <div className="w-full h-full min-h-[300px] lg:min-h-[450px]">
             <img
               src={heroFabrics}
@@ -128,7 +117,6 @@ const Home = () => {
           </div>
         </section>
 
-        {/* SEÇÃO DOS 4 PILARES */}
         <section className="bg-white py-16">
           <div className="max-w-7xl mx-auto px-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
@@ -143,7 +131,6 @@ const Home = () => {
           </div>
         </section>
 
-        {/* SEÇÃO: PONTOS PRÓXIMOS DE VOCÊ */}
         <section className="bg-white py-8 border-t border-gray-100">
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex items-center justify-between mb-6">
@@ -158,44 +145,36 @@ const Home = () => {
               </Link>
             </div>
 
-            {/* Grid dos Cards de Pontos Próximos */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {nearbyPoints.map((point) => {
-                const Icon = ICONS[point.iconType] || RiBuildingLine
+              {nearbyPoints.length === 0 ? (
+                <p className="text-sm text-gray-400 col-span-full">Nenhum ponto de coleta encontrado.</p>
+              ) : (
+                nearbyPoints.map((point) => (
+                    <Link
+                      to={`/pontos-de-coleta/${point.id}`}
+                      key={point.id}
+                      className="p-5 rounded-2xl border border-gray-200/90 hover:border-[#153D2C] hover:shadow-sm transition-all duration-200 bg-white flex items-start gap-4 group"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center shrink-0 group-hover:bg-emerald-50 transition-colors">
+                        <RiBuildingLine className="text-2xl text-gray-700" />
+                      </div>
 
-                return (
-                  <Link
-                    to={`/pontos-de-coleta/${point.id}`}
-                    key={point.id}
-                    className="p-5 rounded-2xl border border-gray-200/90 hover:border-[#153D2C] hover:shadow-sm transition-all duration-200 bg-white flex items-start gap-4 group"
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center shrink-0 group-hover:bg-emerald-50 transition-colors">
-                      <Icon
-                        className={`text-2xl ${
-                          point.iconType === 'recycle'
-                            ? 'text-green-600'
-                            : point.iconType === 'factory'
-                            ? 'text-amber-600'
-                            : 'text-gray-700'
-                        }`}
-                      />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-gray-900 text-sm md:text-base group-hover:text-[#153D2C] transition-colors leading-snug truncate">
-                        {point.name}
-                      </h3>
-                      <p className="text-xs text-gray-500 mt-0.5">{point.city}</p>
-                      <p className="text-xs text-gray-400 mt-1 font-medium">{point.distance}</p>
-                    </div>
-                  </Link>
-                )
-              })}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-gray-900 text-sm md:text-base group-hover:text-[#153D2C] transition-colors leading-snug truncate">
+                          {point.name}
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-0.5">{point.city}</p>
+                        {point.distanceKm && (
+                          <p className="text-xs text-gray-400 mt-1 font-medium">{point.distanceKm} km</p>
+                        )}
+                      </div>
+                    </Link>
+                ))
+              )}
             </div>
           </div>
         </section>
 
-        {/* SEÇÃO: CAMPANHAS EM DESTAQUE */}
         <section className="bg-gray-50 py-14">
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex items-center justify-between mb-8">
@@ -210,9 +189,7 @@ const Home = () => {
               </Link>
             </div>
 
-            {/* Bloco de Destaque */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center bg-white p-6 md:p-8 rounded-2xl border border-gray-100 shadow-sm">
-              {/* Coluna da Imagem */}
               <div className="overflow-hidden rounded-xl h-64 md:h-80">
                 <img
                   src={featuredCampaign.image || clothesImage}
@@ -221,7 +198,6 @@ const Home = () => {
                 />
               </div>
 
-              {/* Coluna dos Detalhes e Ação */}
               <div className="flex flex-col justify-center items-start">
                 <span className="text-xs md:text-sm font-bold uppercase tracking-wider text-green-800">
                   Campanha em Destaque
