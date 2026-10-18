@@ -807,7 +807,7 @@ app.post('/api/v1/auth/login', (req, res) => {
   );
 
   if (!user) {
-    return res.status(401).json({ message: 'Credenciais inv�lidas.' });
+    return res.status(401).json({ message: 'Credenciais inválidas.' });
   }
 
   return res.json({ token: signToken(user) });

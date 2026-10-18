@@ -13,6 +13,8 @@ npm run dev:all
 
 O front-end fica disponível no endereço exibido pelo Vite e a API em `http://localhost:4000/api/v1`. A API usa `server/database.json` para persistir os dados do ambiente local. É possível configurar `PORT`, `DATA_FILE` e `JWT_SECRET` por variáveis de ambiente. O front-end aceita `VITE_API_URL` para apontar a API a outro endereço.
 
+No desenvolvimento, `.env.development` define a API usada pelo front-end. Atualmente, esse arquivo aponta para `http://163.176.41.61:8080/api/v1`. O comando `npm run dev:all` também inicia a API Express local em `http://localhost:4000/api/v1`; para usar essa API, configure `VITE_API_URL` para esse endereço antes de iniciar o Vite. Em outros ambientes, configure `VITE_API_URL` com o endereço da API correspondente.
+
 Para acessar a administração de conteúdo no ambiente inicial:
 
 - E-mail: `admin@ecotecido.com`
