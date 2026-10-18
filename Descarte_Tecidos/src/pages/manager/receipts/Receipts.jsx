@@ -1,15 +1,23 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { FiCalendar, FiArrowUp, FiMoreVertical } from 'react-icons/fi';
+import managerService from '../../../services/managerService';
 
 const Receipts = () => {
-  const receiptsData = [
-    { id: 1, date: '11/09/2026', material: 'Algodão', quantity: '10 kg', responsible: 'João Silva' },
-    { id: 2, date: '10/09/2026', material: 'Jeans', quantity: '8 kg', responsible: 'Ana Costa' },
-    { id: 3, date: '09/09/2026', material: 'Poliéster', quantity: '15 kg', responsible: 'Carlos Almeida' },
-    { id: 4, date: '08/09/2026', material: 'Algodão', quantity: '5 kg', responsible: 'João Silva' },
-    { id: 5, date: '07/09/2026', material: 'Viscose', quantity: '7 kg', responsible: 'Ana Costa' },
-    { id: 6, date: '06/09/2026', material: 'Linho', quantity: '8 kg', responsible: 'Carlos Almeida' },
-  ];
+  const [receiptsData, setReceiptsData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let mounted = true;
+    managerService.getManagerReceipts()
+      .then((response) => mounted && setReceiptsData(response.content || []))
+      .catch((requestError) => mounted && setError(requestError.message || 'Não foi possível carregar recebimentos.'))
+      .finally(() => mounted && setIsLoading(false));
+    return () => { mounted = false; };
+  }, []);
+
+  const totalWeight = receiptsData.reduce((total, item) => total + (Number.parseFloat(String(item.quantity).replace(',', '.')) || 0), 0);
+  const materialCount = new Set(receiptsData.map((item) => item.material)).size;
 
   return (
     <div className="w-full">
@@ -36,23 +44,22 @@ const Receipts = () => {
   
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
           <div className="text-xl mb-2">📦</div>
-          <div className="text-2xl font-bold text-gray-900">124</div>
+          <div className="text-2xl font-bold text-gray-900">{receiptsData.length}</div>
           <div className="text-sm text-gray-500 mt-1">Total de recebimentos</div>
-          <div className="text-xs font-medium text-emerald-500 mt-1">+ 12%</div>
+          <div className="text-xs font-medium text-emerald-500 mt-1">Registros do ponto</div>
         </div>
-=
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
           <div className="text-xl mb-2">🧵</div>
-          <div className="text-2xl font-bold text-gray-900">5</div>
+          <div className="text-2xl font-bold text-gray-900">{materialCount}</div>
           <div className="text-sm text-gray-500 mt-1">Total de materiais</div>
-          <div className="text-xs font-medium text-emerald-500 mt-1">+ 8%</div>
+          <div className="text-xs font-medium text-emerald-500 mt-1">Tipos registrados</div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
           <div className="text-xl mb-2">⚖️</div>
-          <div className="text-2xl font-bold text-gray-900">53 kg</div>
+          <div className="text-2xl font-bold text-gray-900">{totalWeight.toLocaleString('pt-BR')} kg</div>
           <div className="text-sm text-gray-500 mt-1">Peso total</div>
-          <div className="text-xs font-medium text-emerald-500 mt-1">+ 8%</div>
+          <div className="text-xs font-medium text-emerald-500 mt-1">Peso registrado</div>
         </div>
       </div>
 
@@ -70,14 +77,14 @@ const Receipts = () => {
             </thead>
 
             <tbody className="divide-y divide-gray-100 text-sm">
-              {receiptsData.map((item) => (
+              {isLoading ? <tr><td colSpan="5" className="py-8 text-center text-gray-400">Carregando recebimentos...</td></tr> : error ? <tr><td colSpan="5" role="alert" className="py-8 text-center text-red-700">{error}</td></tr> : receiptsData.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="py-4 px-6 text-gray-600">{item.date}</td>
+                  <td className="py-4 px-6 text-gray-600">{item.data}</td>
                   <td className="py-4 px-6 font-medium text-gray-900">{item.material}</td>
-                  <td className="py-4 px-6 text-gray-600">{item.quantity}</td>
-                  <td className="py-4 px-6 text-gray-600">{item.responsible}</td>
+                  <td className="py-4 px-6 text-gray-600">{item.quantidade}</td>
+                  <td className="py-4 px-6 text-gray-600">{item.responsavel}</td>
                   <td className="py-4 px-6 text-right">
-                    <button title="Opções" className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                      <button type="button" title="Opções" aria-label={`Opções do recebimento ${item.id}`} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                       <FiMoreVertical className="w-4 h-4" />
                     </button>
                   </td>

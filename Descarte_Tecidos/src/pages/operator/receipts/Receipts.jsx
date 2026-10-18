@@ -1,15 +1,36 @@
-import React, { useState } from 'react';
-const mockRecebimentos = [
-  { id: '#RO0124', data: '11/09/2026', hora: '10:32', material: 'Algodão', quantidade: '10 kg', observacoes: '--', responsavel: 'João Silva' },
-  { id: '#RO0125', data: '10/09/2026', hora: '14:15', material: 'Jeans', quantidade: '8 kg', observacoes: 'Bom estado', responsavel: 'Carlos Almeida' },
-  { id: '#RO0126', data: '09/09/2026', hora: '09:45', material: 'Poliéster', quantidade: '15 kg', observacoes: '--', responsavel: 'João Silva' },
-  { id: '#RO0127', data: '08/09/2026', hora: '11:20', material: 'Algodão', quantidade: '5 kg', observacoes: '--', responsavel: 'Ana Costa' },
-  { id: '#RO0128', data: '07/09/2026', hora: '16:05', material: 'Viscose', quantidade: '7 kg', observacoes: '--', responsavel: 'Carlos Almeida' },
-  { id: '#RO0129', data: '06/09/2026', hora: '13:10', material: 'Linho', quantidade: '8 kg', observacoes: '--', responsavel: 'João Silva' },
-];
+import { useEffect, useState } from 'react';
+import operatorService from '../../../services/operatorService';
+
+const formatReceipt = (receipt) => {
+  const date = new Date(receipt.createdAt);
+  return {
+    ...receipt,
+    displayId: `#R${receipt.id}`,
+    data: Number.isNaN(date.getTime()) ? receipt.data : date.toLocaleDateString('pt-BR'),
+    hora: Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    quantidade: receipt.quantidade || `${receipt.quantity} kg`,
+    observacoes: receipt.notes || '--',
+    responsavel: receipt.responsavel || 'Operador',
+  };
+};
 
 const Receipts = () => {
   const [selectedRecebimento, setSelectedRecebimento] = useState(null);
+  const [receipts, setReceipts] = useState([]);
+  const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let mounted = true;
+    operatorService.getReceipts()
+      .then((response) => mounted && setReceipts((response.content || []).map(formatReceipt)))
+      .catch((requestError) => mounted && setError(requestError.message || 'Não foi possível carregar recebimentos.'))
+      .finally(() => mounted && setIsLoading(false));
+    return () => { mounted = false; };
+  }, []);
+
+  const filteredReceipts = receipts.filter((item) => item.material.toLowerCase().includes(search.toLowerCase().trim()));
   if (selectedRecebimento) {
     return (
       <div className="w-full font-sans animate-in fade-in duration-300">
@@ -28,7 +49,7 @@ const Receipts = () => {
           </div>
           
           <h2 className="text-xl font-bold text-gray-900 mb-0.5">
-            Recebimento {selectedRecebimento.id}
+            Recebimento {selectedRecebimento.displayId}
           </h2>
           <p className="text-xs text-gray-400 mb-6 font-medium">
             {selectedRecebimento.data} - {selectedRecebimento.hora}
@@ -91,7 +112,9 @@ const Receipts = () => {
           </svg>
           <input 
             type="text" 
-            placeholder="Buscar por material..." 
+            placeholder="Buscar por material..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200/80 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0d2a1f] focus:border-[#0d2a1f] shadow-sm transition-all"
           />
         </div>
@@ -108,9 +131,9 @@ const Receipts = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100/60">
-            {mockRecebimentos.map((item, index) => (
+            {isLoading ? <tr><td colSpan="4" className="px-6 py-8 text-center text-gray-500">Carregando recebimentos...</td></tr> : error ? <tr><td colSpan="4" role="alert" className="px-6 py-8 text-center text-red-700">{error}</td></tr> : filteredReceipts.map((item) => (
               <tr 
-                key={index} 
+                key={item.id}
                 onClick={() => setSelectedRecebimento(item)}
                 className="hover:bg-gray-50/80 transition-colors cursor-pointer group"
               >

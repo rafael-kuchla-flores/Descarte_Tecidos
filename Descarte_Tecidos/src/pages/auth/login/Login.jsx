@@ -35,7 +35,7 @@ const Login = () => {
         navigate('/admin')
 
       } else if (role === 'PONTO_COLETA_GERENTE') {
-        navigate('/manager/dashboard')
+        navigate('/gerente')
       } else if (role === 'PONTO_COLETA_OPERADOR') {
         navigate('/operator/dashboard')
       } else {

@@ -3,7 +3,6 @@ import { NavLink, useNavigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth' 
 import { 
   RiRecycleFill, 
-  RiLayoutGridLine, 
   RiMapPinLine, 
   RiTimeLine, 
   RiShirtLine, 
@@ -29,12 +28,12 @@ const ManagerLayout = () => {
   const avatarLetter = user?.name ? user.name.charAt(0).toUpperCase() : 'G'
 
   const menuItems = [
-    { name: 'Dashboard', icon: RiLayoutGridLine, path: '/manager/dashboard' },
-    { name: 'Ponto de Coleta', icon: RiMapPinLine, path: '/manager/collection-point' },
-    { name: 'Horários', icon: RiTimeLine, path: '/manager/schedules' },
-    { name: 'Tipos de Tecidos', icon: RiShirtLine, path: '/manager/accepted-fabrics' },
-    { name: 'Operadores', icon: RiUser3Line, path: '/manager/operators' },
-    { name: 'Recebimentos', icon: RiBox3Line, path: '/manager/recebimentos' },
+    { name: 'Meu Ponto de Coleta', icon: RiMapPinLine, path: '/gerente/ponto' },
+    { name: 'Horários', icon: RiTimeLine, path: '/gerente/horarios' },
+    { name: 'Tecidos Aceitos', icon: RiShirtLine, path: '/gerente/tecidos' },
+    { name: 'Operadores', icon: RiUser3Line, path: '/gerente/operadores' },
+    { name: 'Recebimentos', icon: RiBox3Line, path: '/gerente/recebimentos' },
+    { name: 'Meu Perfil', icon: RiUser3Line, path: '/gerente/perfil' },
 
   ]
 

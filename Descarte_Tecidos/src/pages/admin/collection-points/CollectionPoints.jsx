@@ -27,6 +27,12 @@ const CollectionPoints = () => {
   const [editingId, setEditingId] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [view, setView] = useState('pendentes')
+  const [pendingUpdates, setPendingUpdates] = useState([])
+  const [pendingUpdatesError, setPendingUpdatesError] = useState('')
+  const [selectedUsersPoint, setSelectedUsersPoint] = useState(null)
+  const [pointUsers, setPointUsers] = useState(null)
+  const [operatorDocument, setOperatorDocument] = useState('')
+  const [usersError, setUsersError] = useState('')
 
   const [pontos, setPontos] = useState([])
   const [loading, setLoading] = useState(true)
@@ -50,6 +56,7 @@ const CollectionPoints = () => {
     state: 'PE',
     latitude: '',
     longitude: '',
+    imageUrl: '',
     openTime: '08:00',
     closeTime: '18:00',
     clothTypeIds: [],
@@ -189,6 +196,7 @@ const CollectionPoints = () => {
           ACTIVE: 'ATIVO',
           APPROVED: 'ATIVO',
           PENDING: 'PENDENTE',
+          PAUSED: 'PAUSADO',
           SUSPENDED: 'PAUSADO',
         }
 
@@ -196,15 +204,23 @@ const CollectionPoints = () => {
           ...point,
           nome: point.name || point.nome || 'Ponto de coleta',
           endereco: addressText,
-          cidade: addressText,
+          cidade: typeof address === 'object' ? address.city || point.city : point.city || addressText,
           horario: Array.isArray(point.operatingHours)
-            ? point.operatingHours.map((hour) => `${hour.dayOfWeek}: ${hour.openingTime} às ${hour.closingTime}`).join(' • ')
+            ? point.operatingHours.map((hour) => `${hour.dayOfWeek}: ${hour.openTime || hour.openingTime} às ${hour.closeTime || hour.closingTime}`).join(' • ')
             : '',
           status: statusByApiValue[point.status] || point.status,
         }
       })
 
       setPontos(normalizedPoints)
+      try {
+        const updates = await pointService.getPendingUpdates()
+        setPendingUpdates(updates)
+        setPendingUpdatesError('')
+      } catch (error) {
+        console.error('Erro ao carregar edições pendentes:', error)
+        setPendingUpdatesError(error.data?.message || 'Não foi possível carregar as edições pendentes.')
+      }
     } catch (error) {
       console.error("Erro ao carregar pontos:", error)
       alert("Erro ao carregar a lista de pontos.")
@@ -222,7 +238,7 @@ const CollectionPoints = () => {
     setFormError('')
     setFormData({
       nome: '', street: '', number: '', complement: '', bairro: '', zipCode: '',
-      cidade: '', state: 'PE', latitude: '', longitude: '', openTime: '08:00', closeTime: '18:00', clothTypeIds: [],
+      cidade: '', state: 'PE', latitude: '', longitude: '', imageUrl: '', openTime: '08:00', closeTime: '18:00', clothTypeIds: [],
     })
     setSelectedDays(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'])
     setClothTypesError('')
@@ -274,10 +290,12 @@ const CollectionPoints = () => {
         state: address.state || 'PE',
         latitude: point.latitude ?? address.latitude ?? '',
         longitude: point.longitude ?? address.longitude ?? '',
-        openTime: operatingHours[0]?.openingTime || '08:00',
-        closeTime: operatingHours[0]?.closingTime || '18:00',
+        imageUrl: point.imageUrl || point.pointPictureUrl || '',
+        openTime: operatingHours[0]?.openTime || operatingHours[0]?.openingTime || '08:00',
+        closeTime: operatingHours[0]?.closeTime || operatingHours[0]?.closingTime || '18:00',
         clothTypeIds: availableClothTypes
-          .filter((clothType) => acceptedTypes.includes(clothType.name))
+          .filter((clothType) => (point.clothTypeIds || []).map(Number).includes(Number(clothType.id))
+            || acceptedTypes.includes(clothType.name))
           .map((clothType) => clothType.id),
       })
       setSelectedDays(activeDays)
@@ -349,10 +367,12 @@ const CollectionPoints = () => {
         state: formData.state,
         country: 'Brasil',
         zipCode: formData.zipCode.replace(/\D/g, ''),
+        latitude,
+        longitude,
       },
       latitude,
       longitude,
-      imageUrl: formData.imageUrl || 'https://example.com/imagem.jpg',
+      imageUrl: formData.imageUrl.trim(),
       clothTypeIds: formData.clothTypeIds,
       operatingHours: selectedDays.map((dayOfWeek) => ({
         dayOfWeek,
@@ -369,10 +389,6 @@ const CollectionPoints = () => {
           operatingHour: operatingHours,
         })
       } else {
-        console.log(
-          'PAYLOAD ENVIADO:',
-          JSON.stringify(pointData, null, 2)
-        )
         await pointService.createPonto(pointData)
       }
 
@@ -380,7 +396,7 @@ const CollectionPoints = () => {
       setEditingId(null)
       setFormData({
         nome: '', street: '', number: '', complement: '', bairro: '', zipCode: '',
-        cidade: '', state: 'PE', latitude: '', longitude: '', openTime: '08:00', closeTime: '18:00', clothTypeIds: [],
+        cidade: '', state: 'PE', latitude: '', longitude: '', imageUrl: '', openTime: '08:00', closeTime: '18:00', clothTypeIds: [],
       })
       setSelectedDays(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'])
       await fetchPontos()
@@ -428,9 +444,45 @@ const CollectionPoints = () => {
     }
   }
 
+  const handleReviewUpdate = async (update, action) => {
+    const operation = action === 'approve' ? pointService.approvePointUpdate : pointService.rejectPointUpdate
+    try {
+      await operation(update.currentPoint.id)
+      await fetchPontos()
+    } catch (error) {
+      console.error('Erro ao revisar edição do ponto:', error)
+      alert(error.data?.message || 'Não foi possível revisar a edição pendente.')
+    }
+  }
+
+  const handleOpenPointUsers = async (point) => {
+    setSelectedUsersPoint(point)
+    setPointUsers(null)
+    setUsersError('')
+    try {
+      const users = await pointService.getPointUsers(point.id)
+      setPointUsers(users)
+    } catch (error) {
+      setUsersError(error.data?.message || 'Não foi possível carregar os usuários deste ponto.')
+    }
+  }
+
+  const handleAddPointOperator = async (event) => {
+    event.preventDefault()
+    if (!selectedUsersPoint || !operatorDocument.trim()) return
+    setUsersError('')
+    try {
+      const users = await pointService.addPointOperator(selectedUsersPoint.id, operatorDocument)
+      setPointUsers(users)
+      setOperatorDocument('')
+    } catch (error) {
+      setUsersError(error.data?.message || 'Não foi possível adicionar o operador.')
+    }
+  }
+
   const visiblePontos = pontos.filter((ponto) => {
     const matchesSearch = (ponto.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-    const matchesView = view === 'todos' || ponto.status === 'PENDENTE'
+    const matchesView = view === 'todos' || (view === 'pendentes' && ponto.status === 'PENDENTE')
     return matchesSearch && matchesView
   })
 
@@ -464,6 +516,13 @@ const CollectionPoints = () => {
         >
           Todos ({pontos.length})
         </button>
+        <button
+          type="button"
+          onClick={() => setView('edicoes')}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${view === 'edicoes' ? 'bg-[#123C2C] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+        >
+          Edições pendentes ({pendingUpdates.length})
+        </button>
       </div>
 
       <div className="mb-6 w-full max-w-sm">
@@ -476,7 +535,49 @@ const CollectionPoints = () => {
         />
       </div>
 
-      <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+      {view === 'edicoes' ? (
+        <section className="space-y-4">
+          {pendingUpdatesError ? <p role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{pendingUpdatesError}</p>
+            : loading ? <p className="py-8 text-center text-gray-500">Carregando edições pendentes...</p>
+            : pendingUpdates.length === 0 ? <p className="py-8 text-center text-gray-500">Não há edições pendentes.</p>
+              : pendingUpdates.filter((item) => item.currentPoint.name.toLowerCase().includes(searchTerm.toLowerCase())).map((update) => {
+                const current = update.currentPoint
+                const changes = update.proposedChanges || {}
+                const formatAddress = (address) => address
+                  ? [address.street, address.number, address.neighborhood, address.city, address.state].filter(Boolean).join(', ')
+                  : ''
+                const currentAddress = formatAddress(current.address)
+                const proposedAddress = changes.address
+                  ? formatAddress(changes.address)
+                  : ''
+                const currentHours = (current.operatingHours || [])
+                  .map((hour) => `${hour.dayOfWeek}: ${hour.openTime || hour.openingTime}–${hour.closeTime || hour.closingTime}`)
+                  .join(' · ')
+                return (
+                  <article key={update.id} className="rounded-xl border border-amber-200 bg-amber-50/50 p-5">
+                    <div className="flex flex-col justify-between gap-3 sm:flex-row">
+                      <div>
+                        <h2 className="font-bold text-gray-900">{current.name}</h2>
+                        <p className="mt-1 text-xs text-gray-500">Solicitado por {update.requestedByEmail} · {new Date(update.requestedAt).toLocaleString('pt-BR')}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => handleReviewUpdate(update, 'approve')} className="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold text-white">Aprovar edição</button>
+                        <button type="button" onClick={() => handleReviewUpdate(update, 'reject')} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700">Rejeitar</button>
+                      </div>
+                    </div>
+                    <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                      {changes.name !== undefined && <div><dt className="text-gray-500">Nome · atual → proposto</dt><dd className="font-medium">{current.name} → {changes.name}</dd></div>}
+                      {changes.address && <div><dt className="text-gray-500">Endereço · atual → proposto</dt><dd className="font-medium">{currentAddress || 'Não informado'} → {proposedAddress || 'Não informado'}</dd></div>}
+                      {changes.status !== undefined && <div><dt className="text-gray-500">Status · atual → proposto</dt><dd className="font-medium">{current.status} → {changes.status}</dd></div>}
+                      {changes.imageUrl !== undefined && <div><dt className="text-gray-500">Imagem · atual → proposta</dt><dd className="break-all font-medium">{current.pointPictureUrl || 'Sem imagem'} → {changes.imageUrl || 'Remover imagem'}</dd></div>}
+                      {changes.clothTypeIds && <div><dt className="text-gray-500">Tipos aceitos · atuais → propostos</dt><dd className="font-medium">{(current.acceptedClothTypes || []).join(', ') || 'Nenhum'} → {changes.clothTypeIds.map((id) => clothTypes.find((item) => Number(item.id) === Number(id))?.name || id).join(', ')}</dd></div>}
+                      {changes.operatingHour && <div className="sm:col-span-2"><dt className="text-gray-500">Horários · atuais → propostos</dt><dd className="font-medium">{currentHours || 'Não informado'} → {changes.operatingHour.map((hour) => `${hour.dayOfWeek}: ${hour.openTime}–${hour.closeTime}`).join(' · ')}</dd></div>}
+                    </dl>
+                  </article>
+                )
+              })}
+        </section>
+      ) : <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
         <table className="w-full text-left text-sm text-gray-600">
           <thead className="border-b border-gray-100 bg-white text-gray-500 font-medium">
             <tr>
@@ -532,6 +633,14 @@ const CollectionPoints = () => {
 
                     <button
                       type="button"
+                      onClick={() => handleOpenPointUsers(ponto)}
+                      className="rounded text-sm font-semibold text-[#2B6054] hover:text-[#123C2C]"
+                      title="Gerentes e operadores"
+                    >
+                      Usuários
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => handleEditPoint(ponto.id)}
                       className="text-orange-500 hover:text-orange-700 transition-colors cursor-pointer"
                       title="Editar"
@@ -557,7 +666,7 @@ const CollectionPoints = () => {
         <div className="px-6 py-4 border-t border-gray-100 text-xs text-gray-400 bg-white">
           Mostrando {visiblePontos.length} de {pontos.length} pontos
         </div>
-      </div>
+      </div>}
 
 
       {isModalOpen && (
@@ -630,7 +739,6 @@ const CollectionPoints = () => {
                           Buscando endereço...
                         </p>
                       )}
-
                       {cepError && (
                         <p className="mt-1 text-xs text-red-600">
                           {cepError}
@@ -687,6 +795,16 @@ const CollectionPoints = () => {
                     )}
                   </div>
                 </div>
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">URL da imagem de capa</label>
+                  <input
+                    type="url"
+                    placeholder="https://exemplo.com/imagem.jpg"
+                    value={formData.imageUrl}
+                    onChange={(event) => setFormData({ ...formData, imageUrl: event.target.value })}
+                    className="w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:border-[#123C2C] focus:outline-none"
+                  />
+                </div>
                 <fieldset>
                   <legend className="mb-2 block font-semibold text-gray-700">Tipos de tecido aceitos*</legend>
                   <div className="grid grid-cols-2 gap-2">
@@ -742,6 +860,36 @@ const CollectionPoints = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {selectedUsersPoint && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <section role="dialog" aria-modal="true" aria-labelledby="point-users-title" className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h2 id="point-users-title" className="text-lg font-bold">Usuários · {selectedUsersPoint.nome}</h2>
+              <button type="button" onClick={() => setSelectedUsersPoint(null)} aria-label="Fechar" className="text-2xl text-gray-500">×</button>
+            </div>
+            {usersError && <p role="alert" className="mt-4 rounded bg-red-50 p-3 text-sm text-red-700">{usersError}</p>}
+            {!pointUsers && !usersError && <p className="mt-4 text-sm text-gray-500">Carregando usuários...</p>}
+            {pointUsers && (
+              <>
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700">Gerentes</h3>
+                    {pointUsers.managers.length ? pointUsers.managers.map((user) => <p key={user.email} className="mt-1 text-sm">{user.name} · {user.email}</p>) : <p className="mt-1 text-sm text-gray-500">Nenhum gerente vinculado.</p>}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700">Operadores</h3>
+                    {pointUsers.operators.length ? pointUsers.operators.map((user) => <p key={user.email} className="mt-1 text-sm">{user.name} · {user.email}</p>) : <p className="mt-1 text-sm text-gray-500">Nenhum operador vinculado.</p>}
+                  </div>
+                </div>
+                <form onSubmit={handleAddPointOperator} className="mt-5 flex flex-col gap-2 border-t pt-4 sm:flex-row">
+                  <input required value={operatorDocument} onChange={(event) => setOperatorDocument(event.target.value)} placeholder="Documento do usuário existente" className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm" />
+                  <button className="rounded-lg bg-[#123C2C] px-4 py-2 text-sm font-semibold text-white">Adicionar operador</button>
+                </form>
+              </>
+            )}
+          </section>
         </div>
       )}
     </div>

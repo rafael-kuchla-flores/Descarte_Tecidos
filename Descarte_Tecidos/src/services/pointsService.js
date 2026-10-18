@@ -4,6 +4,8 @@ const getPontos = async (params = {}) => getAllPages('/admin/collection-points',
 
 const getPontosPendentes = async (params = {}) => getAllPages('/admin/collection-points/pending', params)
 
+const getPendingUpdates = async (params = {}) => getAllPages('/admin/collection-points/pending-updates', params)
+
 const getClothTypes = async (params = {}) => getAllPages('/admin/cloth-types', params)
 
 const createClothType = async (clothType) => api('/admin/cloth-types', {
@@ -40,6 +42,17 @@ const rejectPonto = async (id) => {
   return await api(`/admin/collection-points/${id}/reject`, { method: 'PATCH' })
 }
 
+const approvePointUpdate = async (id) => api(`/admin/collection-points/${id}/approve-update`, { method: 'POST' })
+
+const rejectPointUpdate = async (id) => api(`/admin/collection-points/${id}/reject-update`, { method: 'POST' })
+
+const getPointUsers = async (id) => api(`/admin/collection-points/${id}/users`)
+
+const addPointOperator = async (id, document) => api(`/admin/collection-points/${id}/users/operators`, {
+  method: 'PATCH',
+  body: JSON.stringify({ document }),
+})
+
 const toggleStatus = async (id, status) => {
   return await api(`/admin/collection-points/${id}`, {
     method: 'PATCH',
@@ -50,6 +63,7 @@ const toggleStatus = async (id, status) => {
 const pontosService = {
   getPontos,
   getPontosPendentes,
+  getPendingUpdates,
   getClothTypes,
   createClothType,
   updateClothType,
@@ -58,6 +72,10 @@ const pontosService = {
   updatePonto,
   approvePonto,
   rejectPonto,
+  approvePointUpdate,
+  rejectPointUpdate,
+  getPointUsers,
+  addPointOperator,
   toggleStatus,
 }
 

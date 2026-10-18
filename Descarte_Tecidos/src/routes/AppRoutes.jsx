@@ -25,12 +25,7 @@ import ClothTypesAdmin from "../pages/admin/cloth-types/ClothTypes.jsx";
 import AccessDenied from "../pages/access-denied/AccessDenied.jsx";
 // Manager
 import ManagerLayout from "../components/managerlayout/ManagerLayout.jsx";
-import ManagerDashboard from "../pages/manager/dashboard/ManagerDashboard.jsx";
-import ManagerCollectionPoint from "../pages/manager/collection-point/CollectionPoint.jsx";
-import Schedules from "../pages/manager/schedules/Schedules.jsx";
-import AcceptedFabrics from "../pages/manager/accepted-fabrics/AcceptedFabrics.jsx";
-import Operators from "../pages/manager/operators/Operators.jsx";
-import Receipts from "../pages/manager/receipts/Receipts.jsx";
+import ManagerFeaturePending from "../pages/manager/ManagerFeaturePending.jsx";
 // Operator
 import OperatorLayout from "../components/operatorlayout/OperatorLayout.jsx";
 import OperatorDashboard from "../pages/operator/dashboard/OperatorDashboard.jsx";
@@ -70,14 +65,14 @@ function AppRoutes() {
 
       {/* Manager */}
       <Route element={<ProtectedRoute allowedRoles={['PONTO_COLETA_GERENTE']} />}>
-        <Route path="/manager" element={<ManagerLayout />}>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<ManagerDashboard />} />
-          <Route path="collection-point" element={<ManagerCollectionPoint />} />
-          <Route path="schedules" element={<Schedules />} />
-          <Route path="accepted-fabrics" element={<AcceptedFabrics />} />
-          <Route path="operators" element={<Operators />} />
-          <Route path="recebimentos" element={<Receipts />} />
+        <Route path="/gerente" element={<ManagerLayout />}>
+          <Route index element={<Navigate to="ponto" replace />} />
+          <Route path="ponto" element={<ManagerFeaturePending title="Meu Ponto de Coleta" feature="point" />} />
+          <Route path="horarios" element={<ManagerFeaturePending title="Horários" />} />
+          <Route path="tecidos" element={<ManagerFeaturePending title="Tecidos Aceitos" />} />
+          <Route path="operadores" element={<ManagerFeaturePending title="Operadores" />} />
+          <Route path="recebimentos" element={<ManagerFeaturePending title="Recebimentos" />} />
+          <Route path="perfil" element={<ManagerFeaturePending title="Meu Perfil" />} />
         </Route>
       </Route>
 

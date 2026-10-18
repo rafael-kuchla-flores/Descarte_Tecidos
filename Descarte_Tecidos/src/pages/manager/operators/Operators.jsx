@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { FiPlus, FiX, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { useEffect, useState } from 'react';
+import { FiPlus, FiX, FiTrash2 } from 'react-icons/fi';
+import managerService from '../../../services/managerService';
 
 const Operators = () => {
-  const [operators, setOperators] = useState([
-    { id: 1, name: 'João Silva', email: 'joao@exemplo.com', phone: '(11) 98765-4321', status: 'Ativo' },
-    { id: 2, name: 'Ana Costa', email: 'ana@exemplo.com', phone: '(11) 97654-3210', status: 'Ativo' },
-    { id: 3, name: 'Carlos Almeida', email: 'carlos@exemplo.com', phone: '(11) 96543-2109', status: 'Ativo' },
-  ]);
+  const [operators, setOperators] = useState([]);
+  const [pointId, setPointId] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [feedback, setFeedback] = useState('');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -16,29 +16,45 @@ const Operators = () => {
     phone: '',
     password: ''
   });
+  useEffect(() => {
+    let mounted = true;
+    managerService.getManagerCollectionPoint()
+      .then(async (point) => {
+        if (!mounted) return;
+        setPointId(point.id);
+        const data = await managerService.getOperatorsByPoint(point.id);
+        if (mounted) setOperators(data);
+      })
+      .catch((error) => mounted && setFeedback(error.message || 'Não foi possível carregar operadores.'))
+      .finally(() => mounted && setIsLoading(false));
+    return () => { mounted = false; };
+  }, []);
   const filteredOperators = operators.filter(op => 
     op.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     op.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  const handleDeleteOperator = (id) => {
-    setOperators((prev) => prev.filter((item) => item.id !== id));
+  const handleDeleteOperator = async (id) => {
+    try {
+      await managerService.deleteOperator(pointId, id);
+      setOperators((prev) => prev.filter((item) => item.id !== id));
+      setFeedback('Operador removido do ponto.');
+    } catch (error) {
+      setFeedback(error.message || 'Não foi possível remover o operador.');
+    }
   };
 
-  const handleAddOperator = (e) => {
+  const handleAddOperator = async (e) => {
     e.preventDefault();
     if (!newOperator.name.trim() || !newOperator.email.trim()) return;
-
-    const newItem = {
-      id: Date.now(),
-      name: newOperator.name,
-      email: newOperator.email,
-      phone: newOperator.phone,
-      status: 'Ativo'
-    };
-
-    setOperators((prev) => [...prev, newItem]);
-    setNewOperator({ name: '', email: '', phone: '', password: '' });
-    setIsModalOpen(false);
+    try {
+      const created = await managerService.createOperator(pointId, newOperator);
+      setOperators((prev) => [...prev, created]);
+      setNewOperator({ name: '', email: '', phone: '', password: '' });
+      setIsModalOpen(false);
+      setFeedback('Operador cadastrado no servidor.');
+    } catch (error) {
+      setFeedback(error.message || 'Não foi possível cadastrar o operador.');
+    }
   };
 
   return (
@@ -68,6 +84,8 @@ const Operators = () => {
         />
       </div>
 
+      {feedback && <p role="status" className="mb-4 rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-700">{feedback}</p>}
+
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[800px]">
@@ -82,7 +100,7 @@ const Operators = () => {
             </thead>
 
             <tbody className="divide-y divide-gray-100 text-sm">
-              {filteredOperators.map((op) => (
+              {isLoading ? <tr><td colSpan="5" className="py-8 text-center text-gray-400">Carregando operadores...</td></tr> : filteredOperators.map((op) => (
                 <tr key={op.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="py-4 px-6 font-medium text-gray-900">{op.name}</td>
                   <td className="py-4 px-6 text-gray-500">{op.email}</td>
@@ -94,9 +112,6 @@ const Operators = () => {
                   </td>
                   <td className="py-4 px-6 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button title="Editar" className="p-1.5 text-orange-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors">
-                        <FiEdit2 className="w-4 h-4" />
-                      </button>
                       <button onClick={() => handleDeleteOperator(op.id)} title="Excluir" className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                         <FiTrash2 className="w-4 h-4" />
                       </button>

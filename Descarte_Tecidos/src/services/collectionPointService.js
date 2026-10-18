@@ -19,6 +19,7 @@ const normalizePoint = (point) => {
   const statusByApiValue = {
     ACTIVE: 'ATIVO',
     PENDING: 'PENDENTE',
+    PAUSED: 'PAUSADO',
     SUSPENDED: 'PAUSADO',
   }
   const acceptedClothTypes = point.acceptedClothTypes || point.materials || []
@@ -35,8 +36,8 @@ const normalizePoint = (point) => {
     distanceKm,
     distance: distanceKm === null ? '' : `${Number(distanceKm).toFixed(1).replace('.', ',')} km`,
     status: statusByApiValue[point.status] || point.status || 'ATIVO',
-    pointPictureUrl: point.pointPictureUrl || null,
-    photo: point.pointPictureUrl || point.photo || null,
+    pointPictureUrl: point.imageUrl || point.pointPictureUrl || null,
+    photo: point.imageUrl || point.pointPictureUrl || point.photo || null,
     description: point.description || '',
     phone: point.phone || '',
     acceptedClothTypes,
@@ -44,7 +45,7 @@ const normalizePoint = (point) => {
     operatingHours,
     hours: operatingHours.length > 0
       ? operatingHours
-          .map((item) => `${item.dayOfWeek}: ${item.openingTime} às ${item.closingTime}`)
+          .map((item) => `${item.dayOfWeek}: ${item.openTime || item.openingTime} às ${item.closeTime || item.closingTime}`)
           .join(' • ')
       : 'Horário comercial',
   }

@@ -1,4 +1,4 @@
-const API_URL = 'http://163.176.41.61:8080/api/v1'
+const API_URL = import.meta.env.VITE_API_URL || 'http://163.176.41.61:8080/api/v1'
 
 const buildUrl = (endpoint, params = {}) => {
   const query = new URLSearchParams()

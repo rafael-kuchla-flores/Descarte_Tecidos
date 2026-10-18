@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import operatorService from '../../../services/operatorService';
 
 const ReceiveMaterial = () => {
   const navigate = useNavigate();
@@ -7,6 +8,7 @@ const ReceiveMaterial = () => {
   const [quantidade, setQuantidade] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,21 +21,21 @@ const ReceiveMaterial = () => {
     setIsSubmitting(true);
 
     try {
-      const novoRecebimento = {
-        tipoMaterial,
-        quantidade: Number(quantidade),
-        observacoes,
-        data: new Date().toISOString(),
+      const materialLabels = {
+        algodao: 'Algodão',
+        jeans: 'Jeans',
+        poliester: 'Poliéster',
+        linho: 'Linho',
+        viscose: 'Viscose',
       };
-
-      console.log('Enviando dados do recebimento:', novoRecebimento);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      alert('Recebimento registrado com sucesso!');
-      navigate('/operator/dashboard');
+      await operatorService.createReceipt({
+        material: materialLabels[tipoMaterial] || tipoMaterial,
+        quantity: Number(quantidade),
+        notes: observacoes,
+      });
+      navigate('/operator/recebimentos');
     } catch (error) {
-      console.error('Erro ao registrar recebimento:', error);
-      alert('Ocorreu um erro ao registrar o recebimento.');
+      setFeedback(error.message || 'Ocorreu um erro ao registrar o recebimento.');
     } finally {
       setIsSubmitting(false);
     }
@@ -54,6 +56,7 @@ const ReceiveMaterial = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        {feedback && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{feedback}</p>}
         <div>
           <label className="block text-xs font-semibold text-gray-800 mb-1.5">
             Tipo de material <span className="text-gray-900">*</span>

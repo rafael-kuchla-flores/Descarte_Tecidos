@@ -1,50 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../../hooks/useAuth'; 
+import { useEffect, useState } from 'react';
+import managerService from '../../../services/managerService';
 
 const ManagerDashboard = () => {
-  const { user } = useAuth(); 
   const [isLoading, setIsLoading] = useState(true);
   const [pontoInfo, setPontoInfo] = useState(null);
   const [metricas, setMetricas] = useState(null);
   const [recebimentos, setRecebimentos] = useState([]);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {   
-        setPontoInfo({
-          nome: 'Ponto de Coleta Centro',
-          endereco: 'Rua das Flores, 123 - Centro, São Paulo/SP',
-          status: 'ATIVO'
-        });
+    let mounted = true;
+    managerService.getManagerDashboard()
+      .then((data) => {
+        if (!mounted) return;
+        setPontoInfo(data.pontoInfo);
+        setMetricas(data.metricas);
+        setRecebimentos(data.recebimentos || []);
+      })
+      .catch((requestError) => mounted && setError(requestError.message || 'Não foi possível carregar o painel.'))
+      .finally(() => mounted && setIsLoading(false));
 
-        setMetricas({
-          totalRecebimentos: 124,
-          crescimentoRecebimentos: '+ 12%',
-          operadores: 3,
-          crescimentoOperadores: '+ 1',
-          tiposTecido: 5,
-          crescimentoTecido: '+ 1'
-        });
-
-        setRecebimentos([
-          { id: 1, data: '11/09/2026', material: 'Algodão', quantidade: '10 kg', responsavel: 'João Silva' },
-          { id: 2, data: '10/09/2026', material: 'Jeans', quantidade: '8 kg', responsavel: 'Ana Costa' },
-          { id: 3, data: '09/09/2026', material: 'Poliéster', quantidade: '15 kg', responsavel: 'Carlos Almeida' },
-          { id: 4, data: '08/09/2026', material: 'Algodão', quantidade: '5 kg', responsavel: 'João Silva' },
-        ]);
-      } catch (error) {
-        console.error("Erro ao buscar dados", error);
-      } finally {
-        setIsLoading(false); 
-      }
-    };
-
-    fetchDashboardData();
-  }, [user]);
+    return () => { mounted = false; };
+  }, []);
 
 
-  if (isLoading || !pontoInfo) {
+  if (isLoading) {
     return <div className="w-full min-h-screen p-8 text-gray-500 text-center">Carregando painel...</div>;
+  }
+
+  if (error || !pontoInfo || !metricas) {
+    return <div role="alert" className="w-full p-8 text-center text-red-700">{error || 'Não foi possível carregar os dados do ponto.'}</div>;
   }
 
   return (

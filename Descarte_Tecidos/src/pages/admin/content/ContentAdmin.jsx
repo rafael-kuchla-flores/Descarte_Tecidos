@@ -1,457 +1,401 @@
-import { useState } from 'react'
-import { 
-  RiPencilLine, 
-  RiDeleteBinLine, 
-  RiCloseLine, 
-  RiAttachment2,
-  RiBold,
-  RiItalic,
-  RiUnderline,
-  RiLink,
-  RiAlignLeft,
-  RiAlignCenter,
-  RiAlignRight,
-  RiListUnordered
-} from 'react-icons/ri'
+import { useCallback, useEffect, useState } from 'react'
+import {
+  createCategory,
+  createPost,
+  deleteCategory,
+  deletePost,
+  getAdminPost,
+  listAdminCategories,
+  listAllAdminPosts,
+  listClothTypes,
+  updateCategory,
+  updatePost,
+} from '../../../services/contentService'
 
-const DEFAULT_CONTENTS = [
-  {
-    id: 1,
-    titulo: 'O impacto da indústria têxtil no meio ambiente',
-    categoria: 'Sustentabilidade',
-    tags: ['sustentabilidade', 'meio ambiente'],
-    conteudo: 'Conteúdo educativo sobre os impactos da indústria têxtil.',
-    imagem: '',
-    status: 'Publicado',
-    data: '16/05/2026'
-  },
-  {
-    id: 2,
-    titulo: '5 dicas para reutilizar suas roupas',
-    categoria: 'Dicas',
-    tags: ['reutilização', 'dicas'],
-    conteudo: 'Dicas práticas para reaproveitar roupas e tecidos.',
-    imagem: '',
-    status: 'Publicado',
-    data: '10/05/2026'
-  },
-  {
-    id: 3,
-    titulo: 'O que é economia circular?',
-    categoria: 'Economia Circular',
-    tags: ['economia circular'],
-    conteudo: 'Introdução à economia circular no setor têxtil.',
-    imagem: '',
-    status: 'Publicado',
-    data: '14/05/2026'
-  },
-  {
-    id: 4,
-    titulo: 'Materiais têxteis sustentáveis',
-    categoria: 'Sustentabilidade',
-    tags: ['materiais', 'sustentabilidade'],
-    conteudo: 'Conheça materiais têxteis com menor impacto ambiental.',
-    imagem: '',
-    status: 'Rascunho',
-    data: '12/05/2026'
-  }
-]
+const emptyForm = {
+  title: '',
+  summary: '',
+  body: '',
+  categoryId: '',
+  coverImageUrl: '',
+  coverImageAlt: '',
+  tags: '',
+  clothTypeIds: [],
+  isPublished: false,
+}
+
+const formatDate = (value) => value
+  ? new Date(value).toLocaleDateString('pt-BR')
+  : '—'
 
 const ContentAdmin = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [posts, setPosts] = useState([])
+  const [categories, setCategories] = useState([])
+  const [clothTypes, setClothTypes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [categoryName, setCategoryName] = useState('')
+  const [editingCategoryId, setEditingCategoryId] = useState(null)
+  const [editingCategoryName, setEditingCategoryName] = useState('')
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [pendingDelete, setPendingDelete] = useState(null)
+  const [formData, setFormData] = useState(emptyForm)
 
-  const [conteudos, setConteudos] = useState(() => {
-    const savedContents = localStorage.getItem('adminContents')
-    return savedContents ? JSON.parse(savedContents) : DEFAULT_CONTENTS
-  })
+  const loadData = useCallback(async () => {
+    try {
+      const [postList, categoryList, clothTypeList] = await Promise.all([
+        listAllAdminPosts({ size: 100, sort: 'createdAt,desc' }),
+        listAdminCategories(),
+        listClothTypes(),
+      ])
+      setPosts(postList)
+      setCategories(categoryList)
+      setClothTypes(clothTypeList)
+      setError('')
+    } catch (requestError) {
+      setError(requestError.message || 'Não foi possível carregar os conteúdos.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  const [formData, setFormData] = useState({
-    titulo: '',
-    categoria: '',
-    imagem: null,
-    imagemPreview: '',
-    conteudo: '',
-    tags: [],
-    status: 'Publicado'
-  })
-  const [tagsInput, setTagsInput] = useState('')
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([
+      listAllAdminPosts({ size: 100, sort: 'createdAt,desc' }),
+      listAdminCategories(),
+      listClothTypes(),
+    ])
+      .then(([postList, categoryList, clothTypeList]) => {
+        if (cancelled) return
+        setPosts(postList)
+        setCategories(categoryList)
+        setClothTypes(clothTypeList)
+      })
+      .catch((requestError) => {
+        if (!cancelled) setError(requestError.message || 'Não foi possível carregar os conteúdos.')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [])
 
-  const filteredConteudos = conteudos.filter(item =>
-    item.titulo.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredPosts = posts.filter((post) =>
+    `${post.title} ${post.summary}`.toLocaleLowerCase('pt-BR').includes(searchTerm.toLocaleLowerCase('pt-BR'))
   )
 
-  const handleNovoConteudo = () => {
+  const openCreateModal = () => {
     setEditingId(null)
-    setFormData({ titulo: '', categoria: '', imagem: null, imagemPreview: '', conteudo: '', tags: [], status: 'Publicado' })
-    setTagsInput('')
+    setFormData({ ...emptyForm, categoryId: categories[0] ? String(categories[0].id) : '' })
     setIsModalOpen(true)
   }
 
-  const handleEditar = (item) => {
-    setEditingId(item.id)
-    setFormData({
-      titulo: item.titulo,
-      categoria: item.categoria,
-      imagem: null,
-      imagemPreview: item.imagem || '',
-      conteudo: item.conteudo || '',
-      tags: item.tags || [],
-      status: item.status
-    })
-    setTagsInput((item.tags || []).join(', '))
-    setIsModalOpen(true)
+  const openEditModal = async (post) => {
+    setError('')
+    try {
+      const detail = await getAdminPost(post.id)
+      setEditingId(detail.id)
+      setFormData({
+        title: detail.title || '',
+        summary: detail.summary || '',
+        body: detail.body || '',
+        categoryId: String(detail.category?.id || ''),
+        coverImageUrl: detail.coverImageUrl || '',
+        coverImageAlt: detail.coverImageAlt || '',
+        tags: (detail.tags || []).join(', '),
+        clothTypeIds: (detail.clothTypes || []).map((clothType) => Number(clothType.id)),
+        isPublished: Boolean(detail.isPublished),
+      })
+      setIsModalOpen(true)
+    } catch (requestError) {
+      setError(requestError.message || 'Não foi possível carregar o post.')
+    }
   }
 
-  const handleExcluir = (id) => {
-    const content = conteudos.find((item) => item.id === id)
-    setPendingDelete(content || null)
-  }
-
-  const handleRemoveTag = (tagToRemove) => {
-    const remainingTags = tagsInput
-      .split(',')
-      .map((tag) => tag.trim())
-      .filter((tag) => tag && tag !== tagToRemove)
-
-    setTagsInput(remainingTags.join(', '))
-  }
-
-  const confirmDelete = () => {
-    if (!pendingDelete) return
-
-    const updatedContents = conteudos.filter(item => item.id !== pendingDelete.id)
-    const deletedContentIds = JSON.parse(localStorage.getItem('deletedContentIds') || '[]')
-    const updatedDeletedIds = [...new Set([...deletedContentIds, String(pendingDelete.id)])]
-
-    setConteudos(updatedContents)
-    localStorage.setItem('adminContents', JSON.stringify(updatedContents))
-    localStorage.setItem('deletedContentIds', JSON.stringify(updatedDeletedIds))
-    setPendingDelete(null)
-  }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    const hoje = new Date()
-    const dataAtual = `${String(hoje.getDate()).padStart(2, '0')}/${String(hoje.getMonth() + 1).padStart(2, '0')}/${hoje.getFullYear()}`
-    const tags = tagsInput.split(',').map((tag) => tag.trim()).filter(Boolean)
-    const contentData = { ...formData, tags }
-    let updatedContents
-
-    if (editingId) {
-      updatedContents = conteudos.map(c => 
-        c.id === editingId 
-        ? { ...c, titulo: contentData.titulo, categoria: contentData.categoria, tags: contentData.tags, conteudo: contentData.conteudo, imagem: contentData.imagemPreview, status: contentData.status } 
-        : c
-      )
-    } else {
-      const novoConteudo = {
-        id: Math.random(),
-        titulo: contentData.titulo,
-        categoria: contentData.categoria,
-        tags: contentData.tags,
-        conteudo: contentData.conteudo,
-        imagem: contentData.imagemPreview,
-        status: contentData.status,
-        data: dataAtual
-      }
-      updatedContents = [novoConteudo, ...conteudos]
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+    const payload = {
+      title: formData.title.trim(),
+      summary: formData.summary.trim(),
+      body: formData.body.trim(),
+      categoryId: Number(formData.categoryId),
+      coverImageUrl: formData.coverImageUrl.trim(),
+      coverImageAlt: formData.coverImageAlt.trim(),
+      tags: formData.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+      clothTypeIds: formData.clothTypeIds,
+      isPublished: formData.isPublished,
     }
 
-    setConteudos(updatedContents)
-    localStorage.setItem('adminContents', JSON.stringify(updatedContents))
-    setIsModalOpen(false)
-    setEditingId(null)
-    setFormData({ titulo: '', categoria: '', imagem: null, imagemPreview: '', conteudo: '', tags: [], status: 'Publicado' })
-    setTagsInput('')
+    try {
+      if (editingId) await updatePost(editingId, payload)
+      else await createPost(payload)
+      setIsModalOpen(false)
+      await loadData()
+    } catch (requestError) {
+      setError(requestError.message || 'Não foi possível salvar o post.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleAddCategory = async (event) => {
+    event.preventDefault()
+    setError('')
+    try {
+      const category = await createCategory(categoryName)
+      setCategories((current) => [...current, category].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')))
+      setCategoryName('')
+    } catch (requestError) {
+      setError(requestError.message || 'Não foi possível criar a categoria.')
+    }
+  }
+
+  const handleDeleteCategory = async (category) => {
+    if (!window.confirm(`Excluir a categoria "${category.name}"?`)) return
+    setError('')
+    try {
+      await deleteCategory(category.id)
+      setCategories((current) => current.filter((item) => item.id !== category.id))
+    } catch (requestError) {
+      setError(requestError.message || 'Não foi possível excluir a categoria.')
+    }
+  }
+
+  const handleUpdateCategory = async (event) => {
+    event.preventDefault()
+    setError('')
+    try {
+      const updated = await updateCategory(editingCategoryId, editingCategoryName)
+      setCategories((current) => current.map((item) => item.id === updated.id ? updated : item))
+      setEditingCategoryId(null)
+      setEditingCategoryName('')
+    } catch (requestError) {
+      setError(requestError.message || 'Não foi possível atualizar a categoria.')
+    }
+  }
+
+  const handleDeletePost = async () => {
+    if (!pendingDelete?.justification.trim()) {
+      setError('Informe a justificativa para excluir o post.')
+      return
+    }
+    setSaving(true)
+    setError('')
+    try {
+      await deletePost(pendingDelete.post.id, pendingDelete.justification)
+      setPendingDelete(null)
+      await loadData()
+    } catch (requestError) {
+      setError(requestError.message || 'Não foi possível excluir o post.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
-    <div className="w-full bg-white p-8 min-h-[calc(100vh-70px)]">
-      
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">Conteúdos</h1>
-        <button
-          onClick={handleNovoConteudo}
-          className="bg-[#123C2C] hover:bg-[#1a5640] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 cursor-pointer"
-        >
-          + Novo conteúdo
+    <section className="min-h-[calc(100vh-70px)] w-full bg-white p-5 sm:p-8">
+      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Posts</h1>
+          <p className="mt-1 text-sm text-gray-500">Crie, edite e publique conteúdos do site.</p>
+        </div>
+        <button type="button" onClick={openCreateModal} className="rounded-lg bg-[#123C2C] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1a5640]">
+          + Novo post
         </button>
       </div>
 
-      <div className="mb-6 w-full max-w-sm">
+      {error && <p role="alert" className="mb-5 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+
+      <section className="mb-8 rounded-xl border border-gray-200 p-5">
+        <h2 className="mb-3 text-base font-bold text-gray-800">Categorias</h2>
+        <form onSubmit={handleAddCategory} className="mb-4 flex flex-col gap-2 sm:flex-row">
+          <input
+            required
+            aria-label="Nome da nova categoria"
+            value={categoryName}
+            onChange={(event) => setCategoryName(event.target.value)}
+            placeholder="Nome da categoria"
+            className="min-w-0 flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm"
+          />
+          <button className="rounded-lg border border-[#123C2C] px-4 py-2.5 text-sm font-semibold text-[#123C2C] hover:bg-emerald-50">
+            Adicionar categoria
+          </button>
+        </form>
+        <ul className="flex flex-wrap gap-2">
+          {categories.map((category) => editingCategoryId === category.id ? (
+            <li key={category.id}>
+              <form onSubmit={handleUpdateCategory} className="flex gap-1">
+                <input autoFocus required aria-label="Editar nome da categoria" value={editingCategoryName} onChange={(event) => setEditingCategoryName(event.target.value)} className="w-40 rounded-full border px-3 py-1 text-sm" />
+                <button className="text-sm font-semibold text-emerald-700">Salvar</button>
+                <button type="button" onClick={() => setEditingCategoryId(null)} className="text-sm text-gray-500">Cancelar</button>
+              </form>
+            </li>
+          ) : (
+            <li key={category.id} className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1.5 text-sm text-gray-700">
+              {category.name}
+              <button type="button" onClick={() => { setEditingCategoryId(category.id); setEditingCategoryName(category.name) }} aria-label={`Renomear categoria ${category.name}`} className="text-xs font-semibold text-[#2B6054] hover:text-[#123C2C]">
+                Editar
+              </button>
+              <button type="button" onClick={() => handleDeleteCategory(category)} aria-label={`Excluir categoria ${category.name}`} className="font-bold text-gray-400 hover:text-red-600">
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <div className="mb-5 max-w-sm">
         <input
-          type="text"
-          placeholder="Buscar conteúdo..."
+          type="search"
+          aria-label="Buscar posts"
+          placeholder="Buscar posts..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-[#123C2C]"
+          onChange={(event) => setSearchTerm(event.target.value)}
+          className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm"
         />
       </div>
 
-      <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
-        <table className="w-full text-left text-sm text-gray-600">
-          <thead className="border-b border-gray-100 bg-white text-gray-500 font-medium">
+      <div className="overflow-x-auto rounded-xl border border-gray-100 shadow-sm">
+        <table className="w-full min-w-[700px] text-left text-sm text-gray-600">
+          <thead className="border-b border-gray-100 text-gray-500">
             <tr>
-              <th className="px-6 py-4">Título</th>
-              <th className="px-6 py-4">Categoria</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4">Data</th>
-              <th className="px-6 py-4 w-24">Ações</th>
+              <th className="px-5 py-4">Título</th>
+              <th className="px-5 py-4">Categoria</th>
+              <th className="px-5 py-4">Status</th>
+              <th className="px-5 py-4">Data</th>
+              <th className="px-5 py-4">Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 bg-white">
-            {filteredConteudos.length === 0 ? (
-              <tr>
-                <td colSpan="5" className="px-6 py-8 text-center text-gray-400">Nenhum conteúdo encontrado.</td>
+          <tbody className="divide-y divide-gray-100">
+            {loading ? (
+              <tr><td colSpan="5" className="px-5 py-8 text-center">Carregando posts...</td></tr>
+            ) : filteredPosts.length === 0 ? (
+              <tr><td colSpan="5" className="px-5 py-8 text-center">Nenhum post encontrado.</td></tr>
+            ) : filteredPosts.map((post) => (
+              <tr key={post.id} className="hover:bg-gray-50">
+                <td className="px-5 py-4 font-medium text-gray-800">{post.title}</td>
+                <td className="px-5 py-4">{post.categoryName}</td>
+                <td className="px-5 py-4">
+                  {post.isDeleted ? 'Excluído' : post.isPublished ? 'Publicado' : 'Rascunho'}
+                </td>
+                <td className="px-5 py-4">{formatDate(post.createdAt)}</td>
+                <td className="px-5 py-4">
+                  <div className="flex gap-3">
+                    {!post.isDeleted && (
+                      <>
+                        <button type="button" onClick={() => openEditModal(post)} className="font-semibold text-orange-600 hover:text-orange-800">
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPendingDelete({ post, justification: '' })}
+                          className="font-semibold text-red-600 hover:text-red-800"
+                        >
+                          Excluir
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
               </tr>
-            ) : (
-              filteredConteudos.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-800">{item.titulo}</td>
-                  <td className="px-6 py-4">{item.categoria}</td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                      item.status === 'Publicado' 
-                        ? 'bg-emerald-50 text-emerald-700' 
-                        : 'bg-amber-50 text-amber-700'
-                    }`}>
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">{item.data}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3 text-lg">
-                      <button onClick={() => handleEditar(item)} aria-label={`Editar ${item.titulo}`} className="rounded text-orange-500 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 transition-colors cursor-pointer" title="Editar">
-                        <RiPencilLine />
-                      </button>
-                      <button onClick={() => handleExcluir(item.id)} aria-label={`Excluir ${item.titulo}`} className="rounded text-gray-400 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 transition-colors cursor-pointer" title="Excluir">
-                        <RiDeleteBinLine />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
+            ))}
           </tbody>
         </table>
-        
-        <div className="px-6 py-4 border-t border-gray-100 text-xs text-gray-400 bg-white">
-          Mostrando 1 a {filteredConteudos.length} de {conteudos.length} conteúdos
-        </div>
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div role="dialog" aria-modal="true" aria-labelledby="content-modal-title" className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl relative flex flex-col max-h-[90vh]">
-            
-            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-              <h2 id="content-modal-title" className="text-lg font-bold text-gray-900">
-                {editingId ? 'Editar conteúdo' : 'Novo conteúdo'}
-              </h2>
-              <button onClick={() => setIsModalOpen(false)} aria-label="Fechar editor de conteúdo" className="rounded text-gray-400 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-700 focus-visible:ring-offset-2 text-xl cursor-pointer">
-                <RiCloseLine />
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto">
-              <form id="form-conteudo" onSubmit={handleSubmit} className="space-y-5 text-sm">
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-semibold text-gray-700 mb-1">Título*</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: O impacto da indústria têxtil..."
-                      value={formData.titulo}
-                      onChange={(e) => setFormData({...formData, titulo: e.target.value})}
-                      className="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#123C2C]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold text-gray-700 mb-1">Categoria*</label>
-                    <select
-                      required
-                      value={formData.categoria}
-                      onChange={(e) => setFormData({...formData, categoria: e.target.value})}
-                      className="w-full border border-gray-200 rounded-lg px-4 py-2.5 bg-white focus:outline-none focus:border-[#123C2C] text-gray-700"
-                    >
-                      <option value="" disabled>Selecione uma categoria</option>
-                      <option value="Sustentabilidade">Sustentabilidade</option>
-                      <option value="Dicas">Dicas</option>
-                      <option value="Economia Circular">Economia Circular</option>
-                      <option value="Moda Consciente">Moda Consciente</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="content-tags" className="block font-semibold text-gray-700 mb-1">Tags</label>
-                  <input
-                    id="content-tags"
-                    type="text"
-                    placeholder="Ex.: reciclagem, doação, sustentabilidade"
-                    value={tagsInput}
-                    onChange={(e) => setTagsInput(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#123C2C]"
-                  />
-                  <p className="text-[11px] text-gray-400 mt-1">Separe as tags por vírgulas.</p>
-                  {tagsInput && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {tagsInput.split(',').map((tag) => tag.trim()).filter(Boolean).map((tag, index) => (
-                        <span key={`${tag}-${index}`} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                          #{tag}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveTag(tag)}
-                            aria-label={`Remover tag ${tag}`}
-                            className="text-emerald-600 hover:text-red-600"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Imagem de destaque</label>
-                  <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <p className="flex items-center gap-1 text-xs text-gray-500 font-medium">
-                        <RiAttachment2 className="text-sm" /> Clique para enviar ou arraste a imagem
-                      </p>
-                      <p className="text-[10px] text-gray-400 mt-1">PNG, JPG até 5MB</p>
-                    </div>
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      accept="image/png, image/jpeg"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (!file) return
-                        const reader = new FileReader()
-                        reader.onload = () => setFormData({ ...formData, imagem: file, imagemPreview: reader.result })
-                        reader.readAsDataURL(file)
-                      }}
-                    />
-                  </label>
-                  {formData.imagem && <p className="text-xs text-emerald-600 mt-1">Arquivo selecionado: {formData.imagem.name}</p>}
-                  {formData.imagemPreview && (
-                    <img src={formData.imagemPreview} alt="Prévia da imagem do conteúdo" className="mt-3 h-24 w-full rounded-lg object-cover" />
-                  )}
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Conteúdo*</label>
-                  <div className="border border-gray-200 rounded-lg overflow-hidden focus-within:border-[#123C2C] transition-colors">
-
-                    <div className="bg-gray-50 border-b border-gray-200 flex items-center px-3 py-2 gap-3 text-gray-500 text-lg">
-                      <button type="button" aria-label="Negrito" title="Negrito" className="rounded hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123C2C] transition-colors cursor-pointer"><RiBold /></button>
-                      <button type="button" aria-label="Itálico" title="Itálico" className="rounded hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123C2C] transition-colors cursor-pointer"><RiItalic /></button>
-                      <button type="button" aria-label="Sublinhado" title="Sublinhado" className="rounded hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123C2C] transition-colors cursor-pointer"><RiUnderline /></button>
-                      <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                      <button type="button" aria-label="Inserir link" title="Inserir link" className="rounded hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123C2C] transition-colors cursor-pointer"><RiLink /></button>
-                      <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                      <button type="button" aria-label="Alinhar à esquerda" title="Alinhar à esquerda" className="rounded hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123C2C] transition-colors cursor-pointer"><RiAlignLeft /></button>
-                      <button type="button" aria-label="Centralizar" title="Centralizar" className="rounded hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123C2C] transition-colors cursor-pointer"><RiAlignCenter /></button>
-                      <button type="button" aria-label="Alinhar à direita" title="Alinhar à direita" className="rounded hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123C2C] transition-colors cursor-pointer"><RiAlignRight /></button>
-                      <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                      <button type="button" aria-label="Lista com marcadores" title="Lista com marcadores" className="rounded hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#123C2C] transition-colors cursor-pointer"><RiListUnordered /></button>
-                    </div>
-
-                    <textarea
-                      required
-                      rows="5"
-                      placeholder="Escreva o conteúdo aqui..."
-                      value={formData.conteudo}
-                      onChange={(e) => setFormData({...formData, conteudo: e.target.value})}
-                      className="w-full p-4 focus:outline-none resize-none text-gray-700"
-                    ></textarea>
-                  </div>
-                </div>
-
-   
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Status*</label>
-                  <select
-                    required
-                    value={formData.status}
-                    onChange={(e) => setFormData({...formData, status: e.target.value})}
-                    className="w-full border border-gray-200 rounded-lg px-4 py-2.5 bg-white focus:outline-none focus:border-[#123C2C] text-gray-700"
-                  >
-                    <option value="Publicado">Publicado</option>
-                    <option value="Rascunho">Rascunho</option>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <section role="dialog" aria-modal="true" aria-labelledby="post-form-title" className="flex max-h-[92vh] w-full max-w-3xl flex-col rounded-2xl bg-white shadow-2xl">
+            <header className="flex items-center justify-between border-b px-6 py-4">
+              <h2 id="post-form-title" className="text-lg font-bold">{editingId ? 'Editar post' : 'Novo post'}</h2>
+              <button type="button" onClick={() => setIsModalOpen(false)} aria-label="Fechar" className="text-2xl text-gray-500">×</button>
+            </header>
+            <form id="post-form" onSubmit={handleSubmit} className="space-y-4 overflow-y-auto p-6">
+              <label className="block text-sm font-semibold text-gray-700">
+                Título
+                <input required maxLength="180" value={formData.title} onChange={(event) => setFormData({ ...formData, title: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5 font-normal" />
+              </label>
+              <label className="block text-sm font-semibold text-gray-700">
+                Resumo
+                <textarea required maxLength="500" rows="2" value={formData.summary} onChange={(event) => setFormData({ ...formData, summary: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5 font-normal" />
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Categoria
+                  <select required value={formData.categoryId} onChange={(event) => setFormData({ ...formData, categoryId: event.target.value })} className="mt-1 w-full rounded-lg border bg-white px-3 py-2.5 font-normal">
+                    <option value="">Selecione</option>
+                    {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
                   </select>
-                </div>
-
-              </form>
-            </div>
-
-            <div className="border-t border-gray-100 px-6 py-4 flex justify-end gap-3 rounded-b-2xl bg-white">
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="px-5 py-2.5 text-sm font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                Cancelar
+                </label>
+                <label className="block text-sm font-semibold text-gray-700">
+                  Tags
+                  <input value={formData.tags} onChange={(event) => setFormData({ ...formData, tags: event.target.value })} placeholder="upcycling, jeans, diy" className="mt-1 w-full rounded-lg border px-3 py-2.5 font-normal" />
+                </label>
+              </div>
+              <label className="block text-sm font-semibold text-gray-700">
+                Conteúdo
+                <textarea required rows="8" value={formData.body} onChange={(event) => setFormData({ ...formData, body: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5 font-normal" />
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-semibold text-gray-700">
+                  URL da imagem de capa
+                  <input type="url" value={formData.coverImageUrl} onChange={(event) => setFormData({ ...formData, coverImageUrl: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5 font-normal" />
+                </label>
+                <label className="block text-sm font-semibold text-gray-700">
+                  Texto alternativo da imagem
+                  <input required={Boolean(formData.coverImageUrl)} value={formData.coverImageAlt} onChange={(event) => setFormData({ ...formData, coverImageAlt: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5 font-normal" />
+                </label>
+              </div>
+              <label className="block text-sm font-semibold text-gray-700">
+                Tipos de tecido relacionados
+                <select
+                  multiple
+                  value={formData.clothTypeIds.map(String)}
+                  onChange={(event) => setFormData({ ...formData, clothTypeIds: [...event.target.selectedOptions].map((option) => Number(option.value)) })}
+                  className="mt-1 min-h-24 w-full rounded-lg border bg-white px-3 py-2.5 font-normal"
+                >
+                  {clothTypes.map((clothType) => <option key={clothType.id} value={clothType.id}>{clothType.name}</option>)}
+                </select>
+                <span className="mt-1 block text-xs font-normal text-gray-500">Use Ctrl (Windows) ou Command (Mac) para selecionar mais de um.</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <input type="checkbox" checked={formData.isPublished} onChange={(event) => setFormData({ ...formData, isPublished: event.target.checked })} />
+                Publicado
+              </label>
+            </form>
+            <footer className="flex justify-end gap-3 border-t px-6 py-4">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="rounded-lg border px-4 py-2 text-sm font-semibold text-gray-600">Cancelar</button>
+              <button form="post-form" disabled={saving} className="rounded-lg bg-[#123C2C] px-5 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                {saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Criar post'}
               </button>
-              <button
-                type="submit"
-                form="form-conteudo"
-                className="px-5 py-2.5 text-sm font-semibold text-white bg-[#123C2C] rounded-lg hover:bg-[#1a5640] transition-colors cursor-pointer"
-              >
-                {editingId ? 'Salvar alterações' : 'Publicar'}
-              </button>
-            </div>
-
-          </div>
+            </footer>
+          </section>
         </div>
       )}
 
       {pendingDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 id="delete-modal-title" className="text-lg font-bold text-gray-900">Excluir conteúdo?</h2>
-                <p className="mt-2 text-sm leading-relaxed text-gray-500">
-                  O conteúdo <strong className="text-gray-700">{pendingDelete.titulo}</strong> deixará de aparecer para os usuários.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPendingDelete(null)}
-                className="rounded text-xl text-gray-400 transition-colors hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-700 focus-visible:ring-offset-2"
-                aria-label="Fechar confirmação"
-              >
-                <RiCloseLine />
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <section role="dialog" aria-modal="true" aria-labelledby="delete-post-title" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <h2 id="delete-post-title" className="text-lg font-bold">Excluir post?</h2>
+            <p className="mt-2 text-sm text-gray-600">“{pendingDelete.post.title}” será removido da área pública, mas ficará no histórico administrativo.</p>
+            <label className="mt-4 block text-sm font-semibold text-gray-700">
+              Justificativa
+              <textarea required rows="3" value={pendingDelete.justification} onChange={(event) => setPendingDelete({ ...pendingDelete, justification: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2 font-normal" />
+            </label>
+            <div className="mt-5 flex justify-end gap-3">
+              <button type="button" onClick={() => setPendingDelete(null)} className="rounded-lg border px-4 py-2 text-sm font-semibold text-gray-600">Cancelar</button>
+              <button type="button" disabled={saving} onClick={handleDeletePost} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">Excluir</button>
             </div>
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setPendingDelete(null)}
-                className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={confirmDelete}
-                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700"
-              >
-                Excluir conteúdo
-              </button>
-            </div>
-          </div>
+          </section>
         </div>
       )}
-    </div>
+    </section>
   )
 }
 

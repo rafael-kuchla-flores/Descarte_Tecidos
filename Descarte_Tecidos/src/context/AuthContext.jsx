@@ -38,14 +38,18 @@ const AuthProvider = ({ children }) => {
     localStorage.setItem('token', newToken)
     setToken(newToken)
 
+    const profile = data.user || await authService.getMe(newToken)
     const tokenData = parseJwt(newToken)
-    const role = tokenData?.roles?.[0] || tokenData?.role || tokenData?.authorities?.[0] || null
+    const roles = profile?.roles || tokenData?.roles || (profile?.role || tokenData?.role ? [profile?.role || tokenData?.role] : [])
+    const role = roles[0] || tokenData?.authorities?.[0] || null
 
     const userData = {
-      id: tokenData?.id,
-      name: tokenData?.name,
-      email: tokenData?.sub || email,
+      id: profile?.id ?? tokenData?.id,
+      name: profile?.name || tokenData?.name,
+      email: profile?.email || tokenData?.sub || email,
       role,
+      roles,
+      pointId: profile?.pointId ?? tokenData?.pointId ?? null,
     }
 
     localStorage.setItem('user', JSON.stringify(userData))
