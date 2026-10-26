@@ -4,7 +4,6 @@ import {
   RiDeleteBinLine,
   RiCloseLine,
   RiPauseCircleLine,
-  RiPlayCircleLine,
   RiCheckLine,
   RiFilterLine
 } from 'react-icons/ri'
@@ -21,6 +20,39 @@ const brazilianStates = [
   ['RS', 'Rio Grande do Sul'], ['RO', 'Rondônia'], ['RR', 'Roraima'], ['SC', 'Santa Catarina'],
   ['SP', 'São Paulo'], ['SE', 'Sergipe'], ['TO', 'Tocantins'],
 ]
+
+const PointImagePreview = ({ pointId, pending = false }) => {
+  const [imageUrl, setImageUrl] = useState('')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let active = true
+    let objectUrl = ''
+    const loadImage = pending ? pointService.getPendingPointImage : pointService.getPointImage
+
+    loadImage(pointId)
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob)
+        if (active) setImageUrl(objectUrl)
+        else URL.revokeObjectURL(objectUrl)
+      })
+      .catch((requestError) => {
+        if (active) setError(pending && requestError.status === 400
+          ? 'Esta edição não possui uma nova imagem.'
+          : requestError.message || 'Imagem indisponível.')
+      })
+
+    return () => {
+      active = false
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [pointId, pending])
+
+  if (error) return <p role="status" className="mt-2 text-xs text-gray-500">{error}</p>
+  if (!imageUrl) return <p role="status" className="mt-2 text-xs text-gray-500">Carregando imagem...</p>
+
+  return <img src={imageUrl} alt={pending ? 'Imagem proposta para o ponto de coleta' : 'Imagem atual do ponto de coleta'} className="mt-2 max-h-48 w-full rounded-lg border border-gray-200 bg-white object-contain" />
+}
 
 const CollectionPoints = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -408,12 +440,10 @@ const CollectionPoints = () => {
 
 
   const handleTogglePause = async (id, statusAtual) => {
-    const isActive = statusAtual === 'ATIVO'
-    const acao = isActive ? 'pausar' : 'reativar'
-    if (window.confirm(`Deseja ${acao} o recebimento deste ponto?`)) {
+    if (statusAtual !== 'ATIVO') return
+    if (window.confirm('Deseja pausar o recebimento deste ponto?')) {
       try {
-        const novoStatus = isActive ? 'SUSPENDED' : 'ACTIVE'
-        await pointService.toggleStatus(id, novoStatus)
+        await pointService.pausePoint(id)
         fetchPontos()
       } catch (error) {
         console.error("Erro ao alterar status:", error)
@@ -573,6 +603,7 @@ const CollectionPoints = () => {
                       {changes.clothTypeIds && <div><dt className="text-gray-500">Tipos aceitos · atuais → propostos</dt><dd className="font-medium">{(current.acceptedClothTypes || []).join(', ') || 'Nenhum'} → {changes.clothTypeIds.map((id) => clothTypes.find((item) => Number(item.id) === Number(id))?.name || id).join(', ')}</dd></div>}
                       {changes.operatingHour && <div className="sm:col-span-2"><dt className="text-gray-500">Horários · atuais → propostos</dt><dd className="font-medium">{currentHours || 'Não informado'} → {changes.operatingHour.map((hour) => `${hour.dayOfWeek}: ${hour.openTime}–${hour.closeTime}`).join(' · ')}</dd></div>}
                     </dl>
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2"><div><p className="text-xs font-semibold text-gray-600">Imagem atual</p><PointImagePreview pointId={current.id} /></div><div><p className="text-xs font-semibold text-gray-600">Imagem pendente</p><PointImagePreview pointId={current.id} pending /></div></div>
                   </article>
                 )
               })}
@@ -620,16 +651,16 @@ const CollectionPoints = () => {
                       >
                         <RiCheckLine />
                       </button>
-                    ) : (
+                    ) : ponto.status === 'ATIVO' ? (
                       <button
                         type="button"
                         onClick={() => handleTogglePause(ponto.id, ponto.status)}
                         className={`${ponto.status === 'ATIVO' ? 'text-amber-500 hover:text-amber-700' : 'text-emerald-500 hover:text-emerald-700'} transition-colors cursor-pointer`}
-                        title={ponto.status === 'ATIVO' ? 'Pausar recebimento' : 'Reativar recebimento'}
+                        title="Pausar recebimento"
                       >
-                        {ponto.status === 'ATIVO' ? <RiPauseCircleLine /> : <RiPlayCircleLine />}
+                        <RiPauseCircleLine />
                       </button>
-                    )}
+                    ) : <span title="Não há rota de reativação documentada" className="px-1 text-gray-400">—</span>}
 
                     <button
                       type="button"
@@ -804,6 +835,7 @@ const CollectionPoints = () => {
                     onChange={(event) => setFormData({ ...formData, imageUrl: event.target.value })}
                     className="w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:border-[#123C2C] focus:outline-none"
                   />
+                  {editingId && <PointImagePreview pointId={editingId} />}
                 </div>
                 <fieldset>
                   <legend className="mb-2 block font-semibold text-gray-700">Tipos de tecido aceitos*</legend>

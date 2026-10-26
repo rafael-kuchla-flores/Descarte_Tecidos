@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { RiSearchLine, RiMapPinLine, RiMap2Line } from 'react-icons/ri'
-import Header from '../../../components/Header/Header'
+import Header from '../../../components/header/Header'
 import CollectionPointCard from '../../../components/CollectionPointCard/CollectionPointCard'
 import collectionPointService from '../../../services/collectionPointService'
 

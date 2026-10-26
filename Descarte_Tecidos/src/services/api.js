@@ -22,9 +22,10 @@ const api = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token')
   const params = options.params || {}
   const requestUrl = `${API_URL}${buildUrl(endpoint, params)}`
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
 
   const headers = {
-    'Content-Type': 'application/json',
+    ...(!isFormData && { 'Content-Type': 'application/json' }),
     ...options.headers,
   }
 
@@ -75,6 +76,41 @@ const api = async (endpoint, options = {}) => {
   }
 
   return data
+}
+
+export const apiBlob = async (endpoint, options = {}) => {
+  const token = localStorage.getItem('token')
+  const { params = {}, headers: optionHeaders = {}, ...fetchOptions } = options
+  const requestUrl = `${API_URL}${buildUrl(endpoint, params)}`
+  const headers = {
+    Accept: 'image/*',
+    ...optionHeaders,
+  }
+
+  if (token && !headers.Authorization) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  const response = await fetch(requestUrl, {
+    ...fetchOptions,
+    method: fetchOptions.method || 'GET',
+    headers,
+  })
+
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type') || ''
+    const errorData = contentType.includes('application/json')
+      ? await response.json().catch(() => null)
+      : await response.text().catch(() => '')
+    const message = errorData?.message || errorData?.error || 'Não foi possível carregar a imagem.'
+    const error = new Error(message)
+    error.status = response.status
+    error.data = errorData
+    error.response = response
+    throw error
+  }
+
+  return response.blob()
 }
 
 export const getAllPages = async (endpoint, params = {}) => {

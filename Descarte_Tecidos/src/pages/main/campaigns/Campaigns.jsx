@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import Header from '../../../components/Header/Header'
+import Header from '../../../components/header/Header'
 import CampaignCard from '../../../components/CampaignCard/CampaignCard'
 import Footer from '../../../components/footer/Footer'
 import campaignService from '../../../services/campaignService'

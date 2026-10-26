@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import Header from '../../../components/Header/Header'
+import Header from '../../../components/header/Header'
 import imgresetpassword from '../../../assets/images/imgreset.jpg'
 import Footer from '../../../components/footer/Footer'
 import authService from '../../../services/authService' // Ajuste o caminho se necessário

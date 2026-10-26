@@ -1,10 +1,12 @@
-import React, { useState } from 'react'
-import { NavLink, useNavigate, Outlet } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, Link, useNavigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth' 
+import UserAvatar from '../useravatar/UserAvatar'
 import { 
   RiRecycleFill, 
   RiLayoutGridLine, 
   RiBox3Line, 
+  RiUser3Line,
   RiLogoutBoxLine,
   RiArrowDownSLine,
   RiMenuLine,
@@ -23,11 +25,10 @@ const OperatorLayout = () => {
     navigate('/')
   }
 
-  const avatarLetter = nome.charAt(0).toUpperCase()
-
   const menuItems = [
     { name: 'Dashboard', icon: RiLayoutGridLine, path: '/operator/dashboard' },
     { name: 'Recebimentos', icon: RiBox3Line, path: '/operator/recebimentos' },
+    { name: 'Meu Perfil', icon: RiUser3Line, path: '/perfil' },
   ]
 
   const navLinkClass = ({ isActive }) =>
@@ -111,15 +112,15 @@ const OperatorLayout = () => {
             </button>
           </div>
           
-          <div className="flex items-center gap-3.5 cursor-pointer ml-auto">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0d2a1f] text-sm font-bold text-white shadow-sm overflow-hidden">
-              {avatarLetter}
-            </div>
+          <Link to="/perfil" aria-label="Abrir meu perfil" className="ml-auto flex items-center gap-3.5">
+            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[#0d2a1f] text-sm font-bold text-white shadow-sm">
+              <UserAvatar />
+            </span>
             
             <span className="hidden sm:flex text-sm font-semibold text-gray-700 items-center">
               Olá, {nome} <RiArrowDownSLine className="ml-1 text-gray-500" />
             </span>
-          </div>
+          </Link>
         </header>
         
         <div className="px-6 sm:px-8 pb-8 flex-1">

@@ -14,7 +14,7 @@ import {
     RiStore2Line,
     RiLeafLine
 } from 'react-icons/ri'
-import Header from '../../../components/Header/Header'
+import Header from '../../../components/header/Header'
 import collectionPointService from '../../../services/collectionPointService'
 
 const ICONS = {

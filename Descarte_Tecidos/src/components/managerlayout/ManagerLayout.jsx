@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
-import { NavLink, useNavigate, Outlet } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, Link, useNavigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth' 
+import UserAvatar from '../useravatar/UserAvatar'
 import { 
   RiRecycleFill, 
   RiMapPinLine, 
@@ -25,15 +26,13 @@ const ManagerLayout = () => {
   }
 
   
-  const avatarLetter = user?.name ? user.name.charAt(0).toUpperCase() : 'G'
-
   const menuItems = [
     { name: 'Meu Ponto de Coleta', icon: RiMapPinLine, path: '/gerente/ponto' },
     { name: 'Horários', icon: RiTimeLine, path: '/gerente/horarios' },
     { name: 'Tecidos Aceitos', icon: RiShirtLine, path: '/gerente/tecidos' },
     { name: 'Operadores', icon: RiUser3Line, path: '/gerente/operadores' },
     { name: 'Recebimentos', icon: RiBox3Line, path: '/gerente/recebimentos' },
-    { name: 'Meu Perfil', icon: RiUser3Line, path: '/gerente/perfil' },
+    { name: 'Meu Perfil', icon: RiUser3Line, path: '/perfil' },
 
   ]
 
@@ -119,15 +118,15 @@ const ManagerLayout = () => {
             </button>
           </div>
           
-          <div className="flex items-center gap-3.5 cursor-pointer ml-auto">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0d2a1f] text-sm font-bold text-white shadow-sm overflow-hidden">
-              {avatarLetter}
-            </div>
+          <Link to="/perfil" aria-label="Abrir meu perfil" className="ml-auto flex items-center gap-3.5">
+            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[#0d2a1f] text-sm font-bold text-white shadow-sm">
+              <UserAvatar />
+            </span>
             
             <span className="hidden sm:flex text-sm font-semibold text-gray-700 items-center">
               Olá, {user?.name || 'Gerente'} <RiArrowDownSLine className="ml-1 text-gray-500" />
             </span>
-          </div>
+          </Link>
         </header>
         
         <div className="px-6 sm:px-8 pb-8 flex-1">

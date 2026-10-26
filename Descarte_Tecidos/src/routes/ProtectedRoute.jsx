@@ -14,8 +14,11 @@ const ProtectedRoute = ({ adminOnly = false, allowedRoles = [] }) => {
     return <Navigate to="/login" replace />
   }
 
-  const roles = adminOnly ? ['ADMIN'] : allowedRoles
-  const hasPermission = roles.length === 0 || roles.includes(normalizeRole(user.role))
+  const allowed = adminOnly ? ['ADMIN'] : allowedRoles
+  const userRoles = [user.role, ...(Array.isArray(user.roles) ? user.roles : [])]
+    .filter(Boolean)
+    .map(normalizeRole)
+  const hasPermission = allowed.length === 0 || allowed.some((role) => userRoles.includes(normalizeRole(role)))
 
   if (!hasPermission) {
     return <Navigate to="/acesso-negado" replace />

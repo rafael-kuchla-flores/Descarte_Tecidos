@@ -1,4 +1,4 @@
-import api, { getAllPages } from './api'
+import api, { apiBlob, getAllPages } from './api'
 
 const getPontos = async (params = {}) => getAllPages('/admin/collection-points', params)
 
@@ -19,6 +19,10 @@ const updateClothType = async (id, clothType) => api(`/admin/cloth-types/${id}`,
 })
 
 const getPontoById = async (id) => api(`/admin/collection-points/${id}`, { method: 'GET' })
+
+const getPointImage = async (id) => apiBlob(`/admin/collection-points/${id}/image`)
+
+const getPendingPointImage = async (id) => apiBlob(`/admin/collection-points/${id}/pending-image`)
 
 const createPonto = async (pointData) => {
   return await api('/admin/collection-points', {
@@ -60,6 +64,8 @@ const toggleStatus = async (id, status) => {
   })
 }
 
+const pausePoint = async (id) => api(`/admin/collection-points/${id}/pause`, { method: 'PATCH' })
+
 const pontosService = {
   getPontos,
   getPontosPendentes,
@@ -68,6 +74,8 @@ const pontosService = {
   createClothType,
   updateClothType,
   getPontoById,
+  getPointImage,
+  getPendingPointImage,
   createPonto,
   updatePonto,
   approvePonto,
@@ -77,6 +85,7 @@ const pontosService = {
   getPointUsers,
   addPointOperator,
   toggleStatus,
+  pausePoint,
 }
 
 export default pontosService

@@ -43,6 +43,7 @@ const normalizePoint = (point) => {
     acceptedClothTypes,
     materials: acceptedClothTypes,
     operatingHours,
+    hasPendingUpdate: Boolean(point.hasPendingUpdate),
     hours: operatingHours.length > 0
       ? operatingHours
           .map((item) => `${item.dayOfWeek}: ${item.openTime || item.openingTime} às ${item.closeTime || item.closingTime}`)
@@ -52,6 +53,8 @@ const normalizePoint = (point) => {
 }
 
 const collectionPointService = {
+  getRawPointById: async (id) => api(`/collection-points/${id}`, { method: 'GET' }),
+
   getCollectionPoints: async (params = {}) => {
     const response = await api('/collection-points', { method: 'GET', params })
     const content = Array.isArray(response) ? response : response?.content || []
@@ -72,6 +75,16 @@ const collectionPointService = {
     const response = await api(`/collection-points/${id}`, { method: 'GET' })
     return response ? normalizePoint(response) : null
   },
+
+  updatePoint: async (id, formData) => {
+    const response = await api(`/collection-points/${id}`, {
+      method: 'PUT',
+      body: formData,
+    })
+    return response ? normalizePoint(response) : null
+  },
+
+  pausePoint: async (id) => api(`/admin/collection-points/${id}/pause`, { method: 'PATCH' }),
 }
 
 export default collectionPointService

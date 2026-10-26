@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Header from '../../../components/header/Header'
-import defaultImage from '../../../assets/images/image.png'
+import { PostCoverImage } from '../../../components/contentcard/ContentCard'
 import { getPost } from '../../../services/contentService'
 
 const ContentDetail = () => {
@@ -49,11 +49,7 @@ const ContentDetail = () => {
             </span>
             <h1 className="mt-3 text-3xl font-extrabold leading-tight text-[#11271F] sm:text-4xl">{post.title}</h1>
             {post.summary && <p className="mt-3 text-base leading-relaxed text-gray-600">{post.summary}</p>}
-            <img
-              src={post.coverImageUrl || defaultImage}
-              alt={post.coverImageAlt || post.title}
-              className="mt-7 h-56 w-full rounded-xl object-cover sm:h-80"
-            />
+            <PostCoverImage postId={post.id} alt={post.coverImageAlt || post.title} className="mt-7 h-56 w-full rounded-xl object-cover sm:h-80" />
             <div className="mt-7 space-y-4 text-base leading-7 text-gray-700">
               {String(post.body || '').split('\n').filter(Boolean).map((paragraph, index) => (
                 <p key={index}>{paragraph}</p>

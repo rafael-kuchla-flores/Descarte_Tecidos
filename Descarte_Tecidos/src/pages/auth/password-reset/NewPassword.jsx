@@ -3,7 +3,7 @@ import { FiLock, FiEye, FiEyeOff, FiCheck } from 'react-icons/fi'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import CustomInput from '../../../components/custominput/CustomInput'
 import Button from '../../../components/btns/Button'
-import Header from '../../../components/Header/Header'
+import Header from '../../../components/header/Header'
 import Footer from '../../../components/footer/Footer'
 import authService from '../../../services/authService' 
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { NavLink, useNavigate, Outlet } from 'react-router-dom'
+import { NavLink, Link, useNavigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth' 
+import UserAvatar from '../useravatar/UserAvatar'
 import { 
   RiRecycleFill, 
   RiHome4Line, 
@@ -24,8 +25,6 @@ const AdminLayout = () => {
     if (logout) logout()
     navigate('/')
   }
-
-  const avatarLetter = user?.name ? user.name.charAt(0).toUpperCase() : 'A'
 
    const navLinkClass = ({ isActive }) =>
     `flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition-colors ${
@@ -84,6 +83,9 @@ const AdminLayout = () => {
           <NavLink to="/admin/content" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
             <RiFileTextLine className="text-lg" /> Conteúdos
           </NavLink>
+          <NavLink to="/perfil" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
+            <RiUser3Line className="text-lg" /> Meu Perfil
+          </NavLink>
         </nav>
 
         <div className="px-4 pb-6 pt-4 mt-auto">
@@ -106,14 +108,14 @@ const AdminLayout = () => {
             <h2 className="text-xl sm:text-2xl font-bold text-[#111827]">Painel Admin</h2>
           </div>
           
-          <div className="flex items-center gap-2 cursor-pointer">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#123C2C] text-sm font-bold text-white shadow-sm overflow-hidden">
-              {avatarLetter}
-            </div>
+          <Link to="/perfil" aria-label="Abrir meu perfil" className="flex items-center gap-2">
+            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[#123C2C] text-sm font-bold text-white shadow-sm">
+              <UserAvatar />
+            </span>
             <span className="hidden sm:flex text-sm font-semibold text-gray-700 items-center">
               Olá, {user?.name || 'Admin'} <RiArrowDownSLine className="ml-1 text-gray-500" />
             </span>
-          </div>
+          </Link>
         </header>
 
         <div className="px-4 sm:px-8 pb-8">

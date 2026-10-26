@@ -12,6 +12,7 @@ import Login from "../pages/auth/login/Login.jsx";
 import Register from "../pages/auth/register/Register.jsx";
 import PasswordReset from "../pages/auth/password-reset/PasswordReset.jsx";
 import NewPassword from "../pages/auth/password-reset/NewPassword.jsx";
+import Profile from "../pages/profile/Profile.jsx";
 // admin
 import DashBoard from "../pages/admin/dashboard/DashBoard.jsx";
 import ProtectedRoute from "../routes/ProtectedRoute.jsx";
@@ -26,6 +27,7 @@ import AccessDenied from "../pages/access-denied/AccessDenied.jsx";
 // Manager
 import ManagerLayout from "../components/managerlayout/ManagerLayout.jsx";
 import ManagerFeaturePending from "../pages/manager/ManagerFeaturePending.jsx";
+import ManagerCollectionPoint from "../pages/manager/collection-point/ManagerCollectionPoint.jsx";
 // Operator
 import OperatorLayout from "../components/operatorlayout/OperatorLayout.jsx";
 import OperatorDashboard from "../pages/operator/dashboard/OperatorDashboard.jsx";
@@ -50,6 +52,10 @@ function AppRoutes() {
       <Route path="/redefinir-senha" element={<PasswordReset />} />
       <Route path="/redefinir-senha/nova" element={<NewPassword />} />
 
+      <Route element={<ProtectedRoute />}>
+        <Route path="/perfil" element={<Profile />} />
+      </Route>
+
       {/* admin */}
       <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
         <Route element={<AdminLayout />}>
@@ -67,12 +73,11 @@ function AppRoutes() {
       <Route element={<ProtectedRoute allowedRoles={['PONTO_COLETA_GERENTE']} />}>
         <Route path="/gerente" element={<ManagerLayout />}>
           <Route index element={<Navigate to="ponto" replace />} />
-          <Route path="ponto" element={<ManagerFeaturePending title="Meu Ponto de Coleta" feature="point" />} />
+          <Route path="ponto" element={<ManagerCollectionPoint />} />
           <Route path="horarios" element={<ManagerFeaturePending title="Horários" />} />
           <Route path="tecidos" element={<ManagerFeaturePending title="Tecidos Aceitos" />} />
           <Route path="operadores" element={<ManagerFeaturePending title="Operadores" />} />
           <Route path="recebimentos" element={<ManagerFeaturePending title="Recebimentos" />} />
-          <Route path="perfil" element={<ManagerFeaturePending title="Meu Perfil" />} />
         </Route>
       </Route>
 

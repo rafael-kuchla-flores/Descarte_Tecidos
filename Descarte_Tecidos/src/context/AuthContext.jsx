@@ -69,6 +69,25 @@ const AuthProvider = ({ children }) => {
     setUser(null)
   }
 
+  const syncUserProfile = (profile, newToken) => {
+    if (newToken) {
+      localStorage.setItem('token', newToken)
+      setToken(newToken)
+    }
+
+    const roles = profile.roles || user?.roles || []
+    const updatedUser = {
+      ...user,
+      ...profile,
+      role: roles[0] || profile.role || user?.role,
+      roles,
+      avatarRevision: Date.now(),
+    }
+
+    localStorage.setItem('user', JSON.stringify(updatedUser))
+    setUser(updatedUser)
+  }
+
   useEffect(() => {
     setLoading(false)
   }, [])
@@ -83,6 +102,7 @@ const AuthProvider = ({ children }) => {
         setUser,
         login,
         logout,
+        syncUserProfile,
         isAuthenticated,
         loading,
       }}

@@ -3,6 +3,7 @@ import Button from '../btns/Button'
 import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { RiRecycleFill, RiMenuLine, RiCloseLine, RiArrowDownSFill } from 'react-icons/ri'
 import { useAuth } from '../../hooks/useAuth'
+import UserAvatar from '../useravatar/UserAvatar'
 
 const Header = () => {
     const [menuOpen, setMenuOpen] = useState(false)
@@ -23,9 +24,6 @@ const Header = () => {
         if (logout) logout()
         navigate('/')
     }
-    const avatarLetter = (user?.name || user?.nome) ? (user.name || user.nome).charAt(0).toUpperCase() : 'U';
-
-
     return (
         <>
             <header className="w-full bg-gray-100 px-4 py-3 sm:px-6 lg:px-8">
@@ -59,16 +57,16 @@ const Header = () => {
                     <div className="hidden md:flex items-center gap-4">
                         {user ? (
                             <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-2 cursor-pointer text-[#123C2C]">
-                                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#2a5d48] font-bold text-white shadow-sm">
-                                        {avatarLetter}
-                                    </div>
+                                <Link to="/perfil" aria-label="Abrir meu perfil" className="flex items-center gap-2 text-[#123C2C]">
+                                    <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[#2a5d48] font-bold text-white shadow-sm">
+                                        <UserAvatar />
+                                    </span>
                                     <span className="text-[15px] font-medium flex items-center gap-1">
                                         Olá, {user.name || user.nome || 'Usuário'}
 
                                         <RiArrowDownSFill className="text-gray-600" />
                                     </span>
-                                </div>
+                                </Link>
 
                                 <button
                                     onClick={handleLogout}
@@ -118,12 +116,12 @@ const Header = () => {
                             {user ? (
                                 <>
                                     <div className="flex items-center gap-2 mb-2">
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#2a5d48] font-bold text-white">
-                                            {avatarLetter}
-                                        </div>
-                                        <span className="text-[15px] font-medium text-[#123C2C]">
+                                        <Link to="/perfil" aria-label="Abrir meu perfil" className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[#2a5d48] font-bold text-white">
+                                            <UserAvatar />
+                                        </Link>
+                                        <Link to="/perfil" className="text-[15px] font-medium text-[#123C2C]">
                                             Olá, {user.name || user.nome || 'Usuário'}
-                                        </span>
+                                        </Link>
                                     </div>
                                     <Button onClick={() => { handleLogout(); setMenuOpen(false); }} className="w-full bg-red-600 text-white font-bold border-none">
                                         Sair

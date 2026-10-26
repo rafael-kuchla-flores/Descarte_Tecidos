@@ -101,7 +101,6 @@ const Content = () => {
               <ContentCard
                 key={post.id}
                 id={post.id}
-                image={post.coverImageUrl || undefined}
                 category={post.category?.name}
                 title={post.title}
                 description={post.summary}

@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import { Shirt, MapPin, Package, Sprout, Leaf, TriangleAlert, Check, X } from 'lucide-react';
-import Header from '../../../components/Header/Header';
+import Header from '../../../components/header/Header';
 import Footer from '../../../components/footer/Footer';
 
 const etapas = [

@@ -1,10 +1,35 @@
+import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { FaLongArrowAltRight } from 'react-icons/fa'
 import defaultCard from '../../assets/images/image.png'
+import { getPostImage } from '../../services/contentService'
+
+export const PostCoverImage = ({ postId, alt, className }) => {
+  const [imageUrl, setImageUrl] = useState(defaultCard)
+
+  useEffect(() => {
+    let active = true
+    let objectUrl = ''
+
+    getPostImage(postId)
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob)
+        if (active) setImageUrl(objectUrl)
+        else URL.revokeObjectURL(objectUrl)
+      })
+      .catch(() => active && setImageUrl(defaultCard))
+
+    return () => {
+      active = false
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [postId])
+
+  return <img src={imageUrl} alt={alt} loading="lazy" className={className} />
+}
 
 const ContentCard = ({
   id,
-  image = defaultCard,
   category,
   title,
   description,
@@ -14,12 +39,7 @@ const ContentCard = ({
     <article className="border border-gray-200 rounded-2xl shadow-sm flex flex-col overflow-hidden bg-white">
       
       
-      <img
-        src={image}
-        alt={title}
-        loading="lazy"
-        className="w-full h-48 object-cover"
-      />
+      <PostCoverImage postId={id} alt={title} className="w-full h-48 object-cover" />
 
       
       <div className="p-5 flex flex-col flex-grow">

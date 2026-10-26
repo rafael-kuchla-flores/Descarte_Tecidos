@@ -4,7 +4,9 @@ import {
   createPost,
   deleteCategory,
   deletePost,
+  getAdminCategory,
   getAdminPost,
+  getAdminPostCoverImage,
   listAdminCategories,
   listAllAdminPosts,
   listClothTypes,
@@ -17,7 +19,6 @@ const emptyForm = {
   summary: '',
   body: '',
   categoryId: '',
-  coverImageUrl: '',
   coverImageAlt: '',
   tags: '',
   clothTypeIds: [],
@@ -43,6 +44,19 @@ const ContentAdmin = () => {
   const [editingId, setEditingId] = useState(null)
   const [pendingDelete, setPendingDelete] = useState(null)
   const [formData, setFormData] = useState(emptyForm)
+  const [coverImageFile, setCoverImageFile] = useState(null)
+  const [selectedCoverImagePreview, setSelectedCoverImagePreview] = useState('')
+  const [coverImagePreview, setCoverImagePreview] = useState('')
+  const [coverImageLoading, setCoverImageLoading] = useState(false)
+  const [coverImageError, setCoverImageError] = useState('')
+
+  useEffect(() => () => {
+    if (coverImagePreview) URL.revokeObjectURL(coverImagePreview)
+  }, [coverImagePreview])
+
+  useEffect(() => () => {
+    if (selectedCoverImagePreview) URL.revokeObjectURL(selectedCoverImagePreview)
+  }, [selectedCoverImagePreview])
 
   const loadData = useCallback(async () => {
     try {
@@ -90,12 +104,20 @@ const ContentAdmin = () => {
 
   const openCreateModal = () => {
     setEditingId(null)
+    setCoverImageFile(null)
+    setCoverImagePreview('')
+    setSelectedCoverImagePreview('')
+    setCoverImageError('')
     setFormData({ ...emptyForm, categoryId: categories[0] ? String(categories[0].id) : '' })
     setIsModalOpen(true)
   }
 
   const openEditModal = async (post) => {
     setError('')
+    setCoverImageFile(null)
+    setCoverImagePreview('')
+    setSelectedCoverImagePreview('')
+    setCoverImageError('')
     try {
       const detail = await getAdminPost(post.id)
       setEditingId(detail.id)
@@ -104,13 +126,22 @@ const ContentAdmin = () => {
         summary: detail.summary || '',
         body: detail.body || '',
         categoryId: String(detail.category?.id || ''),
-        coverImageUrl: detail.coverImageUrl || '',
         coverImageAlt: detail.coverImageAlt || '',
         tags: (detail.tags || []).join(', '),
         clothTypeIds: (detail.clothTypes || []).map((clothType) => Number(clothType.id)),
         isPublished: Boolean(detail.isPublished),
       })
       setIsModalOpen(true)
+
+      setCoverImageLoading(true)
+      try {
+        const imageBlob = await getAdminPostCoverImage(detail.id)
+        setCoverImagePreview(URL.createObjectURL(imageBlob))
+      } catch (imageError) {
+        setCoverImageError(imageError.message || 'Não foi possível carregar a imagem de capa.')
+      } finally {
+        setCoverImageLoading(false)
+      }
     } catch (requestError) {
       setError(requestError.message || 'Não foi possível carregar o post.')
     }
@@ -125,7 +156,6 @@ const ContentAdmin = () => {
       summary: formData.summary.trim(),
       body: formData.body.trim(),
       categoryId: Number(formData.categoryId),
-      coverImageUrl: formData.coverImageUrl.trim(),
       coverImageAlt: formData.coverImageAlt.trim(),
       tags: formData.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
       clothTypeIds: formData.clothTypeIds,
@@ -133,9 +163,16 @@ const ContentAdmin = () => {
     }
 
     try {
-      if (editingId) await updatePost(editingId, payload)
-      else await createPost(payload)
+      if (coverImageFile && !payload.coverImageAlt) {
+        setError('Informe o texto alternativo da imagem de capa.')
+        setSaving(false)
+        return
+      }
+      if (editingId) await updatePost(editingId, payload, coverImageFile)
+      else await createPost(payload, coverImageFile)
       setIsModalOpen(false)
+      setCoverImageFile(null)
+      setSelectedCoverImagePreview('')
       await loadData()
     } catch (requestError) {
       setError(requestError.message || 'Não foi possível salvar o post.')
@@ -164,6 +201,17 @@ const ContentAdmin = () => {
       setCategories((current) => current.filter((item) => item.id !== category.id))
     } catch (requestError) {
       setError(requestError.message || 'Não foi possível excluir a categoria.')
+    }
+  }
+
+  const handleEditCategory = async (category) => {
+    setError('')
+    try {
+      const currentCategory = await getAdminCategory(category.id)
+      setEditingCategoryId(currentCategory.id)
+      setEditingCategoryName(currentCategory.name)
+    } catch (requestError) {
+      setError(requestError.message || 'Não foi possível carregar a categoria.')
     }
   }
 
@@ -239,7 +287,7 @@ const ContentAdmin = () => {
           ) : (
             <li key={category.id} className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1.5 text-sm text-gray-700">
               {category.name}
-              <button type="button" onClick={() => { setEditingCategoryId(category.id); setEditingCategoryName(category.name) }} aria-label={`Renomear categoria ${category.name}`} className="text-xs font-semibold text-[#2B6054] hover:text-[#123C2C]">
+              <button type="button" onClick={() => handleEditCategory(category)} aria-label={`Renomear categoria ${category.name}`} className="text-xs font-semibold text-[#2B6054] hover:text-[#123C2C]">
                 Editar
               </button>
               <button type="button" onClick={() => handleDeleteCategory(category)} aria-label={`Excluir categoria ${category.name}`} className="font-bold text-gray-400 hover:text-red-600">
@@ -338,20 +386,36 @@ const ContentAdmin = () => {
                   <input value={formData.tags} onChange={(event) => setFormData({ ...formData, tags: event.target.value })} placeholder="upcycling, jeans, diy" className="mt-1 w-full rounded-lg border px-3 py-2.5 font-normal" />
                 </label>
               </div>
+              {editingId && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-700">Imagem de capa atual</p>
+                  {coverImageLoading && <p role="status" className="mt-2 text-sm text-gray-500">Carregando imagem...</p>}
+                  {coverImageError && <p role="status" className="mt-2 text-sm text-amber-700">{coverImageError}</p>}
+                  {coverImagePreview && (
+                    <img src={coverImagePreview} alt={formData.coverImageAlt || formData.title} className="mt-2 max-h-56 w-full rounded-lg border border-gray-200 object-contain" />
+                  )}
+                </div>
+              )}
               <label className="block text-sm font-semibold text-gray-700">
                 Conteúdo
                 <textarea required rows="8" value={formData.body} onChange={(event) => setFormData({ ...formData, body: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5 font-normal" />
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  URL da imagem de capa
-                  <input type="url" value={formData.coverImageUrl} onChange={(event) => setFormData({ ...formData, coverImageUrl: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5 font-normal" />
+                  Imagem de capa
+                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => {
+                    const file = event.target.files?.[0] || null
+                    setCoverImageFile(file)
+                    setSelectedCoverImagePreview(file ? URL.createObjectURL(file) : '')
+                    setCoverImageError('')
+                  }} className="mt-1 w-full rounded-lg border px-3 py-2.5 font-normal" />
                 </label>
                 <label className="block text-sm font-semibold text-gray-700">
                   Texto alternativo da imagem
-                  <input required={Boolean(formData.coverImageUrl)} value={formData.coverImageAlt} onChange={(event) => setFormData({ ...formData, coverImageAlt: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5 font-normal" />
+                  <input required={Boolean(coverImageFile || coverImagePreview)} value={formData.coverImageAlt} onChange={(event) => setFormData({ ...formData, coverImageAlt: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5 font-normal" />
                 </label>
               </div>
+              {selectedCoverImagePreview && <img src={selectedCoverImagePreview} alt={formData.coverImageAlt || 'Prévia da nova imagem de capa'} className="max-h-56 w-full rounded-lg border border-gray-200 object-contain" />}
               <label className="block text-sm font-semibold text-gray-700">
                 Tipos de tecido relacionados
                 <select

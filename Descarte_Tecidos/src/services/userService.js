@@ -1,19 +1,28 @@
-import api, { getAllPages } from './api'
+import api, { apiBlob, getAllPages } from './api'
 
 const getProfile = async () => {
   return await api('/user', { method: 'GET' })
 }
 
-const updateProfile = async (userData) => {
+const getAssociations = async () => api('/user/associations', { method: 'GET' })
+
+const getAvatar = async () => apiBlob('/user/avatar')
+
+const updateProfile = async (userData, avatarFile, removeAvatar = false) => {
   const payload = {
     name: userData.name,
     email: userData.email,
     phone: userData.phone,
   }
+  if (removeAvatar) payload.removeAvatar = true
+
+  const formData = new FormData()
+  formData.append('data', new Blob([JSON.stringify(payload)], { type: 'application/json' }))
+  if (avatarFile) formData.append('image', avatarFile)
 
   return await api('/user', {
     method: 'PATCH',
-    body: JSON.stringify(payload),
+    body: formData,
   })
 }
 
@@ -52,6 +61,8 @@ const updateUser = async (id, userData) => {
 
 const userService = {
   getProfile,
+  getAssociations,
+  getAvatar,
   updateProfile,
   changePassword,
   getUsers,

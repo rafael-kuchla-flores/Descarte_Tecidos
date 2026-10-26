@@ -7,7 +7,7 @@ import {
   RiStore2Line,
   RiLeafLine,
 } from 'react-icons/ri'
-import Header from '../../../components/Header/Header'
+import Header from '../../../components/header/Header'
 import Footer from '../../../components/footer/Footer'
 import campaignService from '../../../services/campaignService'
 
