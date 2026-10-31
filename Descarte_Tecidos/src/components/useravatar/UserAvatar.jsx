@@ -17,8 +17,12 @@ const UserAvatar = ({ className = '', imageClassName = '' }) => {
         if (active) setImageUrl(objectUrl)
         else URL.revokeObjectURL(objectUrl)
       })
-      .catch(() => {
-        if (active) setImageUrl('')
+      .catch((avatarError) => {
+        if (!active) return
+        setImageUrl('')
+        if (avatarError.status !== 404) {
+          console.error('Não foi possível carregar o avatar do usuário.', avatarError)
+        }
       })
 
     return () => {
@@ -35,3 +39,5 @@ const UserAvatar = ({ className = '', imageClassName = '' }) => {
 }
 
 export default UserAvatar
+
+

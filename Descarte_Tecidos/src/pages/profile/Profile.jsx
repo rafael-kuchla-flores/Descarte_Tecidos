@@ -30,14 +30,15 @@ const Profile = () => {
           email: profile.email || '',
           phone: profile.phone || '',
         })
-
         try {
           const avatar = await userService.getAvatar()
           if (!active) return
           loadedAvatarUrl = URL.createObjectURL(avatar)
           setAvatarUrl(loadedAvatarUrl)
         } catch (avatarError) {
-          if (avatarError.status !== 404 && active) {
+          if (avatarError.status === 404 && active) {
+            setAvatarUrl('')
+          } else if (active) {
             setError(avatarError.message || 'Não foi possível carregar o avatar.')
           }
         }
@@ -83,8 +84,26 @@ const Profile = () => {
     setFeedback('')
 
     try {
-      const response = await userService.updateProfile(formData, avatarFile, removeAvatar)
-      syncUserProfile(response.user, response.token)
+      let avatarResponse = null
+      if (avatarFile && !removeAvatar) {
+        avatarResponse = await userService.updateAvatar(avatarFile)
+      }
+
+      const profileResponse = await userService.updateProfile(formData, removeAvatar)
+      const getResponseUser = (response) => {
+        if (!response || typeof response !== 'object') return null
+        if (response.user && typeof response.user === 'object') return response.user
+        const userFields = ['id', 'name', 'email', 'phone', 'role', 'roles', 'pointId']
+        return userFields.some((field) => field in response) ? response : null
+      }
+      const avatarUser = getResponseUser(avatarResponse)
+      const profileUser = getResponseUser(profileResponse)
+      const updatedUser = profileUser
+        ? { ...avatarUser, ...formData, ...profileUser }
+        : await userService.getProfile()
+      const latestToken = profileResponse?.token || avatarResponse?.token
+
+      syncUserProfile(updatedUser, latestToken)
       setAvatarFile(null)
       setPreviewUrl('')
       setRemoveAvatar(false)

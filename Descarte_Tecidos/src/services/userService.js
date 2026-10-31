@@ -6,22 +6,27 @@ const getProfile = async () => {
 
 const getAssociations = async () => api('/user/associations', { method: 'GET' })
 
-const getAvatar = async () => apiBlob('/user/avatar')
+const getAvatar = async () => apiBlob('/user/avatar', { cache: 'no-store' })
 
-const updateProfile = async (userData, avatarFile, removeAvatar = false) => {
-  const payload = {
-    name: userData.name,
-    email: userData.email,
-    phone: userData.phone,
-  }
-  if (removeAvatar) payload.removeAvatar = true
-
+const updateProfile = async (userData, removeAvatar = false) => {
   const formData = new FormData()
-  formData.append('data', new Blob([JSON.stringify(payload)], { type: 'application/json' }))
-  if (avatarFile) formData.append('image', avatarFile)
-
   return await api('/user', {
     method: 'PATCH',
+    body: JSON.stringify({
+      name: userData.name,
+      email: userData.email,
+      phone: userData.phone,
+      removeAvatar,
+    }),
+  })
+}
+
+const updateAvatar = async (avatarFile) => {
+  const formData = new FormData()
+  formData.append('image', avatarFile)
+
+  return await api('/user/avatar', {
+    method: 'PUT',
     body: formData,
   })
 }
@@ -64,6 +69,7 @@ const userService = {
   getAssociations,
   getAvatar,
   updateProfile,
+  updateAvatar,
   changePassword,
   getUsers,
   createUser,
