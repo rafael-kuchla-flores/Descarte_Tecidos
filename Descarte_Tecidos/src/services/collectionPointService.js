@@ -61,14 +61,37 @@ const collectionPointService = {
     return content.map(normalizePoint)
   },
 
-  getNearbyPoints: async ({ lat, lng, radiusKm = 15, size = 3 }) => {
-    const response = await api('/collection-points/nearby', {
-      method: 'GET',
-      params: { lat, lng, radiusKm, size },
-    })
+  // Retrieves all nearby pages using the API filtering contract.
+  getNearbyPoints: async ({ lat, lng, radiusKm = 15, clothTypeIds = [], size = 100 }) => {
+    if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) {
+      throw new Error('Valid coordinates are required for nearby search.')
+    }
 
-    const content = Array.isArray(response) ? response : response?.content || []
-    return content.map(normalizePoint)
+    const results = []
+    let page = 0
+    let totalPages = 1
+
+    do {
+      const response = await api('/collection-points/nearby', {
+        method: 'GET',
+        params: {
+          lat,
+          lng,
+          radiusKm,
+          ...(clothTypeIds.length ? { clothTypeIds: clothTypeIds.join(',') } : {}),
+          page,
+          size,
+        },
+      })
+      const content = Array.isArray(response) ? response : response?.content || []
+      results.push(...content)
+      totalPages = Array.isArray(response)
+        ? 1
+        : response?.page?.totalPages ?? response?.totalPages ?? 1
+      page += 1
+    } while (page < totalPages)
+
+    return results.map(normalizePoint)
   },
 
   getPointById: async (id) => {

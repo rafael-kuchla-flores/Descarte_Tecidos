@@ -63,7 +63,7 @@ export default function CollectionPoints() {
         || point.city.toLowerCase().includes(normalizedSearch)
         || point.address.toLowerCase().includes(normalizedSearch)
       const matchesMaterial = !materialFilter
-        || point.materials?.some((material) => material.toLowerCase().includes(materialFilter))
+        || point.materials?.some((material) => String(typeof material === 'string' ? material : material?.name || '').toLowerCase().includes(materialFilter))
       const pointDistance = getDistanceInKm(point, coords)
       const matchesDistance = maxDistance === null
         || (pointDistance !== null && pointDistance <= maxDistance)
@@ -89,7 +89,7 @@ export default function CollectionPoints() {
       ({ coords }) => {
         const userCoords = { latitude: coords.latitude, longitude: coords.longitude }
         setLocationState({ status: 'granted', coords: userCoords, error: '' })
-        updateVisiblePoints(filters, search, userCoords)
+
       },
       () => setLocationState({
         status: 'denied',
@@ -99,43 +99,51 @@ export default function CollectionPoints() {
     )
   }
 
-  // Busca os pontos da API ao carregar a página
+  // Loads collection points from the API whenever location or distance changes.
   useEffect(() => {
+    let cancelled = false
+
     const fetchPoints = async () => {
       setLoading(true)
       try {
-        const data = await collectionPointService.getCollectionPoints()
-        setPoints(data)
-        setFilteredPoints(data)
-        setSelectedPointId(data.length > 0 ? data[0].id : null)
+        const coords = locationState.coords
+        const data = coords
+          ? await collectionPointService.getNearbyPoints({
+              lat: coords.latitude,
+              lng: coords.longitude,
+              radiusKm: filters.maxDistance ? Number(filters.maxDistance) : 100,
+            })
+          : await collectionPointService.getCollectionPoints()
+
+        if (!cancelled) setPoints(data)
       } catch (error) {
-        console.error('Erro ao carregar pontos de coleta:', error)
-        setPoints([])
-        setFilteredPoints([])
-        setSelectedPointId(null)
+        console.error('Failed to load collection points:', error)
+        if (!cancelled) setPoints([])
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
-    fetchPoints()
-  }, [])
 
-  // Filtra os pontos conforme o usuário digita na busca
+    fetchPoints()
+    return () => { cancelled = true }
+  }, [locationState.coords, filters.maxDistance])
+
+  // Preserves the team's existing text and material filters on API results.
+  useEffect(() => {
+    updateVisiblePoints()
+  }, [points, filters, search, locationState.coords])
+
   const handleSearch = () => {
-    updateVisiblePoints(filters, search)
+    updateVisiblePoints()
   }
 
   const handleFilterChange = (name, value) => {
-    const nextFilters = { ...filters, [name]: value }
-    setFilters(nextFilters)
-    updateVisiblePoints(nextFilters)
+    setFilters((currentFilters) => ({ ...currentFilters, [name]: value }))
   }
 
   const clearFilters = () => {
-    const emptyFilters = { material: '', maxDistance: '' }
     setSearch('')
-    setFilters(emptyFilters)
-    updateVisiblePoints(emptyFilters, '')
+    setFilters({ material: '', maxDistance: '' })
   }
 
   // Permite buscar ao apertar Enter
@@ -236,7 +244,7 @@ export default function CollectionPoints() {
                 className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 focus:border-[#153D2C] focus:outline-none"
               >
                 <option value="">Todos os tecidos</option>
-                {[...new Set(points.flatMap((point) => point.materials || []))].map((material) => (
+                {[...new Set(points.flatMap((point) => (point.materials || []).map((material) => typeof material === 'string' ? material : material?.name).filter(Boolean)))].map((material) => (
                   <option key={material} value={material}>{material}</option>
                 ))}
               </select>
@@ -293,7 +301,6 @@ export default function CollectionPoints() {
                       onClick={() => {
                         setSearch('')
                         setFilters({ material: '', maxDistance: '' })
-                        updateVisiblePoints({ material: '', maxDistance: '' }, '')
                       }}
                       className="mt-3 text-[#153D2C] font-semibold text-sm hover:underline"
                     >
