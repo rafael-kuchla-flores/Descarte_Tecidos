@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { RiArrowLeftLine } from 'react-icons/ri'
 import { useAuth } from '../../hooks/useAuth'
 import userService from '../../services/userService'
+import CashbackBalance from '../../components/cashback/CashbackBalance'
 
 const Profile = () => {
   const { user, syncUserProfile } = useAuth()
@@ -185,6 +186,7 @@ const Profile = () => {
           </button>
         </div>
       </form>
+      <CashbackBalance />
     </main>
   )
 }
