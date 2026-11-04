@@ -1,16 +1,149 @@
 
 import { useState, useEffect } from 'react'
-import { RiSearchLine, RiMapPinLine, RiMap2Line } from 'react-icons/ri'
+import {
+  RiSearchLine,
+  RiMapPinLine,
+  RiMap2Line,
+} from 'react-icons/ri'
+
 import Header from '../../../components/header/Header'
 import CollectionPointCard from '../../../components/CollectionPointCard/CollectionPointCard'
 import collectionPointService from '../../../services/collectionPointService'
+
+// Reads material names from strings or API objects.
+const getMaterialName = (material) => {
+  if (typeof material === 'string') return material
+
+  return (
+    material?.name ||
+    material?.clothType?.name ||
+    material?.label ||
+    ''
+  )
+}
+
+// Reads a material ID only when it is explicitly available.
+const getMaterialId = (material) => {
+  if (!material || typeof material !== 'object') return null
+
+  const id = material.clothTypeId ?? material.clothType?.id ?? material.id
+
+  if (id === null || id === undefined || id === '') return null
+
+  return id
+}
+
+// Calculates distance using geographic coordinates.
+const calculateDistance = (origin, point) => {
+  if (
+    !origin ||
+    point.latitude == null ||
+    point.longitude == null
+  ) {
+    return null
+  }
+
+  const latitude = Number(point.latitude)
+  const longitude = Number(point.longitude)
+
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude)
+  ) {
+    return null
+  }
+
+  const earthRadiusKm = 6371
+  const toRadians = (value) => (value * Math.PI) / 180
+
+  const latitudeDifference = toRadians(
+    latitude - origin.latitude
+  )
+
+  const longitudeDifference = toRadians(
+    longitude - origin.longitude
+  )
+
+  const originLatitude = toRadians(origin.latitude)
+  const pointLatitude = toRadians(latitude)
+
+  const haversine =
+    Math.sin(latitudeDifference / 2) ** 2 +
+    Math.cos(originLatitude) *
+      Math.cos(pointLatitude) *
+      Math.sin(longitudeDifference / 2) ** 2
+
+  return (
+    earthRadiusKm *
+    2 *
+    Math.atan2(
+      Math.sqrt(haversine),
+      Math.sqrt(1 - haversine)
+    )
+  )
+}
+
+const formatDistance = (distance) =>
+  `${distance.toFixed(1).replace('.', ',')} km`
+
+const getDistanceInKm = (point, coords) => {
+  const calculatedDistance = calculateDistance(coords, point)
+
+  if (calculatedDistance !== null) {
+    return calculatedDistance
+  }
+
+  if (point.distanceKm != null) {
+    const apiDistance = Number(point.distanceKm)
+    return Number.isFinite(apiDistance) ? apiDistance : null
+  }
+
+  const parsedDistance = Number.parseFloat(
+    String(point.distance || '').replace(',', '.')
+  )
+
+  return Number.isFinite(parsedDistance)
+    ? parsedDistance
+    : null
+}
+
+const getStatusInfo = (status) => {
+  switch (status) {
+    case 'ATIVO':
+    case 'ACTIVE':
+      return {
+        label: 'Recebendo',
+        className: 'bg-emerald-50 text-emerald-700',
+      }
+
+    case 'PAUSADO':
+    case 'PAUSED':
+    case 'SUSPENDED':
+      return {
+        label: 'Indisponível',
+        className: 'bg-amber-50 text-amber-700',
+      }
+
+    case 'PENDENTE':
+    case 'PENDING':
+      return {
+        label: 'Pendente',
+        className: 'bg-gray-100 text-gray-700',
+      }
+
+    default:
+      return {
+        label: 'Status não informado',
+        className: 'bg-gray-100 text-gray-700',
+      }
+  }
+}
 
 export default function CollectionPoints() {
   const [points, setPoints] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [filteredPoints, setFilteredPoints] = useState([])
   const [selectedPointId, setSelectedPointId] = useState(null)
 
   const [locationState, setLocationState] = useState({
@@ -24,152 +157,53 @@ export default function CollectionPoints() {
     maxDistance: '',
   })
 
-  // Calculates the distance between two geographic coordinates.
-  const calculateDistance = (origin, point) => {
-    if (
-      !origin ||
-      point.latitude == null ||
-      point.longitude == null
-    ) {
-      return null
-    }
+  // Keeps available materials even after API filtering.
+  const [materialOptions, setMaterialOptions] = useState([])
 
-    const latitude = Number(point.latitude)
-    const longitude = Number(point.longitude)
+  // Collects material names and IDs from API responses.
+  const registerMaterials = (collectionPoints) => {
+    setMaterialOptions((previousOptions) => {
+      const optionsByName = new Map(
+        previousOptions.map((option) => [
+          option.name.toLowerCase(),
+          option,
+        ])
+      )
 
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-      return null
-    }
+      collectionPoints.forEach((point) => {
+        const materials = Array.isArray(point.materials)
+          ? point.materials
+          : []
 
-    const earthRadiusKm = 6371
-    const toRadians = (value) => (value * Math.PI) / 180
+        materials.forEach((material) => {
+          const name = getMaterialName(material)
+          const id = getMaterialId(material)
 
-    const latitudeDifference = toRadians(
-      latitude - origin.latitude
-    )
-    const longitudeDifference = toRadians(
-      longitude - origin.longitude
-    )
+          if (!name) return
 
-    const originLatitude = toRadians(origin.latitude)
-    const pointLatitude = toRadians(latitude)
+          const key = name.toLowerCase()
+          const existingOption = optionsByName.get(key)
 
-    const haversine =
-      Math.sin(latitudeDifference / 2) ** 2 +
-      Math.cos(originLatitude) *
-        Math.cos(pointLatitude) *
-        Math.sin(longitudeDifference / 2) ** 2
-
-    return earthRadiusKm * 2 *
-      Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))
-  }
-
-  const formatDistance = (distance) =>
-    `${distance.toFixed(1).replace('.', ',')} km`
-
-  // Sorts points by their distance from the user.
-  const sortByDistance = (list, coords) =>
-    list
-      .map((point) => {
-        const calculatedDistance = calculateDistance(coords, point)
-
-        return calculatedDistance === null
-          ? point
-          : {
-              ...point,
-              distance: formatDistance(calculatedDistance),
-              calculatedDistance,
-            }
-      })
-      .sort((firstPoint, secondPoint) => {
-        if (firstPoint.calculatedDistance === undefined) return 1
-        if (secondPoint.calculatedDistance === undefined) return -1
-
-        return (
-          firstPoint.calculatedDistance -
-          secondPoint.calculatedDistance
-        )
-      })
-
-  const getDistanceInKm = (point, coords) => {
-    const calculatedDistance = calculateDistance(coords, point)
-
-    if (calculatedDistance !== null) {
-      return calculatedDistance
-    }
-
-    const parsedDistance = Number.parseFloat(
-      String(point.distance || '').replace(',', '.')
-    )
-
-    return Number.isNaN(parsedDistance) ? null : parsedDistance
-  }
-
-  // Applies search, material and distance filters.
-  const filterPoints = (
-    sourcePoints,
-    nextFilters = filters,
-    searchTerm = search,
-    coords = locationState.coords
-  ) => {
-    const normalizedSearch = searchTerm.toLowerCase().trim()
-    const materialFilter = nextFilters.material.toLowerCase()
-
-    const maxDistance = nextFilters.maxDistance
-      ? Number(nextFilters.maxDistance)
-      : null
-
-    const preparedPoints = coords
-      ? sortByDistance(sourcePoints, coords)
-      : sourcePoints
-
-    return preparedPoints.filter((point) => {
-      const matchesSearch =
-        !normalizedSearch ||
-        point.name.toLowerCase().includes(normalizedSearch) ||
-        point.city.toLowerCase().includes(normalizedSearch) ||
-        point.address.toLowerCase().includes(normalizedSearch)
-
-      const matchesMaterial =
-        !materialFilter ||
-        point.materials?.some((material) => {
-          const materialName =
-            typeof material === 'string'
-              ? material
-              : material?.name || ''
-
-          return materialName
-            .toLowerCase()
-            .includes(materialFilter)
+          optionsByName.set(key, {
+            name: existingOption?.name || name,
+            id: id ?? existingOption?.id ?? null,
+          })
         })
+      })
 
-      const pointDistance = getDistanceInKm(point, coords)
-
-      const matchesDistance =
-        maxDistance === null ||
-        (pointDistance !== null && pointDistance <= maxDistance)
-
-      return matchesSearch && matchesMaterial && matchesDistance
+      return [...optionsByName.values()].sort((first, second) =>
+        first.name.localeCompare(second.name, 'pt-BR')
+      )
     })
   }
 
-  const updateVisiblePoints = (
-    nextFilters = filters,
-    searchTerm = search,
-    coords = locationState.coords
-  ) => {
-    const result = filterPoints(
-      points,
-      nextFilters,
-      searchTerm,
-      coords
-    )
+  const selectedMaterial = materialOptions.find(
+    (option) => option.name === filters.material
+  )
 
-    setFilteredPoints(result)
-    setSelectedPointId(result.length > 0 ? result[0].id : null)
-  }
+  const selectedMaterialId = selectedMaterial?.id ?? null
 
-  // Requests permission to use the browser's geolocation.
+  // Requests browser geolocation only after user interaction.
   const requestLocation = () => {
     if (!navigator.geolocation) {
       setLocationState({
@@ -208,7 +242,7 @@ export default function CollectionPoints() {
     )
   }
 
-  // Loads collection points whenever location or distance changes.
+  // Loads collection points from the API.
   useEffect(() => {
     let cancelled = false
 
@@ -219,6 +253,11 @@ export default function CollectionPoints() {
       try {
         const coords = locationState.coords
 
+        const clothTypeIds =
+          selectedMaterialId !== null
+            ? [selectedMaterialId]
+            : []
+
         const data = coords
           ? await collectionPointService.getNearbyPoints({
               lat: coords.latitude,
@@ -226,11 +265,17 @@ export default function CollectionPoints() {
               radiusKm: filters.maxDistance
                 ? Number(filters.maxDistance)
                 : 100,
+              clothTypeIds,
             })
           : await collectionPointService.getCollectionPoints()
 
         if (!cancelled) {
-          setPoints(data)
+          const collectionPoints = Array.isArray(data)
+            ? data
+            : []
+
+          setPoints(collectionPoints)
+          registerMaterials(collectionPoints)
         }
       } catch (requestError) {
         console.error(
@@ -257,46 +302,109 @@ export default function CollectionPoints() {
     return () => {
       cancelled = true
     }
-  }, [locationState.coords, filters.maxDistance])
+  }, [
+    locationState.coords,
+    filters.maxDistance,
+    selectedMaterialId,
+  ])
 
-  // Updates the visible points when search or filters change.
-  useEffect(() => {
-    updateVisiblePoints()
-  }, [points, filters, search, locationState.coords])
+  // Applies local filters to the loaded collection points.
+  const filteredPoints = points
+    .map((point) => {
+      const calculatedDistance = calculateDistance(
+        locationState.coords,
+        point
+      )
 
-  const handleSearch = () => {
-    updateVisiblePoints()
-  }
-
-  const handleFilterChange = (name, value) => {
-    setFilters((currentFilters) => ({
-      ...currentFilters,
-      [name]: value,
-    }))
-  }
-
-  const clearFilters = () => {
-    setSearch('')
-    setFilters({
-      material: '',
-      maxDistance: '',
+      return calculatedDistance === null
+        ? point
+        : {
+            ...point,
+            distance: formatDistance(calculatedDistance),
+            calculatedDistance,
+          }
     })
-  }
+    .filter((point) => {
+      const normalizedSearch = search.toLowerCase().trim()
+      const materialFilter = filters.material.toLowerCase()
 
-  const handleKeyDown = (event) => {
-    if (event.key === 'Enter') {
-      handleSearch()
-    }
-  }
+      const searchableText = [
+        point.name,
+        point.city,
+        point.address,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
 
-  // Gets the currently selected collection point.
+      const matchesSearch =
+        !normalizedSearch ||
+        searchableText.includes(normalizedSearch)
+
+      const materials = Array.isArray(point.materials)
+        ? point.materials
+        : []
+
+      const matchesMaterial =
+        !materialFilter ||
+        materials.some((material) =>
+          getMaterialName(material)
+            .toLowerCase()
+            .includes(materialFilter)
+        )
+
+      const maxDistance = filters.maxDistance
+        ? Number(filters.maxDistance)
+        : null
+
+      const pointDistance = getDistanceInKm(
+        point,
+        locationState.coords
+      )
+
+      const matchesDistance =
+        maxDistance === null ||
+        (
+          pointDistance !== null &&
+          pointDistance <= maxDistance
+        )
+
+      return (
+        matchesSearch &&
+        matchesMaterial &&
+        matchesDistance
+      )
+    })
+    .sort((firstPoint, secondPoint) => {
+      if (!locationState.coords) return 0
+
+      const firstDistance = getDistanceInKm(
+        firstPoint,
+        locationState.coords
+      )
+
+      const secondDistance = getDistanceInKm(
+        secondPoint,
+        locationState.coords
+      )
+
+      if (firstDistance === null) return 1
+      if (secondDistance === null) return -1
+
+      return firstDistance - secondDistance
+    })
+
   const activePoint =
-    filteredPoints.find((point) => point.id === selectedPointId) ||
+    filteredPoints.find(
+      (point) => point.id === selectedPointId
+    ) ||
     filteredPoints[0] ||
     null
 
   const mapQuery = activePoint
-    ? `${activePoint.name}, ${activePoint.address}, ${activePoint.city}`
+    ? [activePoint.name, activePoint.address]
+        .filter(Boolean)
+        .join(', ')
     : search
       ? `${search}, Brasil`
       : 'Brasil'
@@ -307,9 +415,31 @@ export default function CollectionPoints() {
 
   const directionsUrl = activePoint
     ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-        `${activePoint.name}, ${activePoint.address}, ${activePoint.city}`
+        mapQuery
       )}`
     : '#'
+
+  const statusInfo = activePoint
+    ? getStatusInfo(activePoint.status)
+    : null
+
+  const handleFilterChange = (name, value) => {
+    setFilters((currentFilters) => ({
+      ...currentFilters,
+      [name]: value,
+    }))
+
+    setSelectedPointId(null)
+  }
+
+  const clearFilters = () => {
+    setSearch('')
+    setFilters({
+      material: '',
+      maxDistance: '',
+    })
+    setSelectedPointId(null)
+  }
 
   return (
     <>
@@ -327,7 +457,7 @@ export default function CollectionPoints() {
           </p>
         </div>
 
-        {/* Search bar */}
+        {/* Search */}
         <div className="flex gap-3 max-w-2xl mx-auto mb-6">
           <div className="flex-1 flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 bg-white">
             <RiSearchLine className="text-gray-400" />
@@ -337,21 +467,20 @@ export default function CollectionPoints() {
               placeholder="Digite sua cidade ou bairro..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={handleKeyDown}
-              className="flex-1 outline-none text-sm text-gray-700"
+              className="flex-1 min-w-0 outline-none text-sm text-gray-700"
             />
           </div>
 
           <button
             type="button"
-            onClick={handleSearch}
+            onClick={() => setSelectedPointId(null)}
             className="bg-[#153D2C] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#1f5c42]"
           >
             Buscar
           </button>
         </div>
 
-        {/* Geolocation section */}
+        {/* Geolocation */}
         <div className="max-w-2xl mx-auto mb-8 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -382,7 +511,7 @@ export default function CollectionPoints() {
           </div>
         </div>
 
-        {/* Filter section */}
+        {/* Filters */}
         <div className="max-w-4xl mx-auto mb-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
             <div className="flex-1">
@@ -397,27 +526,21 @@ export default function CollectionPoints() {
                 id="material-filter"
                 value={filters.material}
                 onChange={(event) =>
-                  handleFilterChange('material', event.target.value)
+                  handleFilterChange(
+                    'material',
+                    event.target.value
+                  )
                 }
                 className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700"
               >
                 <option value="">Todos os tecidos</option>
 
-                {[
-                  ...new Set(
-                    points.flatMap((point) =>
-                      (point.materials || [])
-                        .map((material) =>
-                          typeof material === 'string'
-                            ? material
-                            : material?.name
-                        )
-                        .filter(Boolean)
-                    )
-                  ),
-                ].map((material) => (
-                  <option key={material} value={material}>
-                    {material}
+                {materialOptions.map((material) => (
+                  <option
+                    key={material.name}
+                    value={material.name}
+                  >
+                    {material.name}
                   </option>
                 ))}
               </select>
@@ -435,7 +558,10 @@ export default function CollectionPoints() {
                 id="distance-filter"
                 value={filters.maxDistance}
                 onChange={(event) =>
-                  handleFilterChange('maxDistance', event.target.value)
+                  handleFilterChange(
+                    'maxDistance',
+                    event.target.value
+                  )
                 }
                 className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700"
               >
@@ -462,13 +588,14 @@ export default function CollectionPoints() {
 
           {filters.maxDistance && !locationState.coords && (
             <p className="mt-3 text-xs text-gray-500">
-              A distância usa os valores disponíveis nos pontos.
-              Permita sua localização para calcular distâncias precisas.
+              Permita sua localização para calcular distâncias
+              precisas. Sem ela, usamos apenas as distâncias
+              disponíveis nos dados dos pontos.
             </p>
           )}
         </div>
 
-        {/* API error message */}
+        {/* API error */}
         {error && (
           <p
             role="alert"
@@ -478,9 +605,12 @@ export default function CollectionPoints() {
           </p>
         )}
 
-        {/* Collection point results */}
+        {/* Results */}
         {loading ? (
-          <p className="text-center text-gray-500">
+          <p
+            role="status"
+            className="text-center text-gray-500"
+          >
             Carregando pontos de coleta...
           </p>
         ) : error ? (
@@ -518,14 +648,18 @@ export default function CollectionPoints() {
                     <CollectionPointCard
                       key={point.id}
                       point={point}
-                      isSelected={point.id === selectedPointId}
-                      onSelect={() => setSelectedPointId(point.id)}
+                      isSelected={
+                        activePoint?.id === point.id
+                      }
+                      onSelect={() =>
+                        setSelectedPointId(point.id)
+                      }
                     />
                   ))
                 )}
               </div>
 
-              {/* Google Maps panel */}
+              {/* Map */}
               <div className="w-full lg:w-[440px] shrink-0">
                 <div className="sticky top-6 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex flex-col">
                   <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/70">
@@ -555,7 +689,7 @@ export default function CollectionPoints() {
                     />
                   </div>
 
-                  {/* Selected collection point */}
+                  {/* Selected point */}
                   {activePoint ? (
                     <div className="p-4 bg-white flex flex-col gap-3">
                       <div>
@@ -568,19 +702,13 @@ export default function CollectionPoints() {
                         </h3>
 
                         <p className="text-xs text-gray-500 mt-0.5">
-                          {activePoint.address} • {activePoint.city}
+                          {activePoint.address}
                         </p>
 
                         <span
-                          className={`inline-flex mt-2 w-fit rounded-full px-2 py-1 text-[10px] font-bold uppercase ${
-                            activePoint.status === 'PAUSADO'
-                              ? 'bg-amber-50 text-amber-700'
-                              : 'bg-emerald-50 text-emerald-700'
-                          }`}
+                          className={`inline-flex mt-2 w-fit rounded-full px-2 py-1 text-[10px] font-bold uppercase ${statusInfo.className}`}
                         >
-                          {activePoint.status === 'PAUSADO'
-                            ? 'Indisponível'
-                            : 'Recebendo'}
+                          {statusInfo.label}
                         </span>
                       </div>
 
