@@ -13,6 +13,7 @@ import Register from "../pages/auth/register/Register.jsx";
 import PasswordReset from "../pages/auth/password-reset/PasswordReset.jsx";
 import NewPassword from "../pages/auth/password-reset/NewPassword.jsx";
 import Profile from "../pages/profile/Profile.jsx";
+import DisposalRegistration from "../pages/main/disposal/DisposalRegistration.jsx";
 // admin
 import DashBoard from "../pages/admin/dashboard/DashBoard.jsx";
 import ProtectedRoute from "../routes/ProtectedRoute.jsx";
@@ -54,6 +55,10 @@ function AppRoutes() {
 
       <Route element={<ProtectedRoute />}>
         <Route path="/perfil" element={<Profile />} />
+        <Route
+          path="/registrar-descarte"
+          element={<DisposalRegistration />}
+        />
       </Route>
 
       {/* admin */}
