@@ -50,6 +50,7 @@ const Header = () => {
                             <li>
                                 <NavLink to="/conteudos" className={linkClass}>Conteúdos</NavLink>
                             </li>
+                            {user && <li><NavLink to="/carteira" className={linkClass}>Carteira</NavLink></li>}
                         </ul>
                     </div>
 
@@ -109,6 +110,7 @@ const Header = () => {
                             <li><NavLink to="/pontos-de-coleta" className={linkClass} onClick={() => setMenuOpen(false)}>Pontos de Coleta</NavLink></li>
                             <li><NavLink to="/campanhas" className={linkClass} onClick={() => setMenuOpen(false)}>Campanhas</NavLink></li>
                             <li><NavLink to="/conteudos" className={linkClass} onClick={() => setMenuOpen(false)}>Conteúdos</NavLink></li>
+                            {user && <li><NavLink to="/carteira" className={linkClass} onClick={() => setMenuOpen(false)}>Cashback e carteira</NavLink></li>}
                         </ul>
 
                         {/* BOTÕES MOBILE */}

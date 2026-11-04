@@ -32,6 +32,7 @@ const ManagerLayout = () => {
     { name: 'Tecidos Aceitos', icon: RiShirtLine, path: '/gerente/tecidos' },
     { name: 'Operadores', icon: RiUser3Line, path: '/gerente/operadores' },
     { name: 'Recebimentos', icon: RiBox3Line, path: '/gerente/recebimentos' },
+    { name: 'Descartes pendentes', icon: RiBox3Line, path: '/gerente/descartes' },
     { name: 'Meu Perfil', icon: RiUser3Line, path: '/perfil' },
 
   ]

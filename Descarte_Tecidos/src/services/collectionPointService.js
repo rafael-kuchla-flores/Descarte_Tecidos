@@ -41,6 +41,7 @@ const normalizePoint = (point) => {
     description: point.description || '',
     phone: point.phone || '',
     acceptedClothTypes,
+    clothTypeIds: point.clothTypeIds || [],
     materials: acceptedClothTypes,
     operatingHours,
     hasPendingUpdate: Boolean(point.hasPendingUpdate),

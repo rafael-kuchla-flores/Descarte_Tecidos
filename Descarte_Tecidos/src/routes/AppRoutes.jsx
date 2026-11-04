@@ -22,6 +22,9 @@ import CollectionPoints from "../pages/admin/collection-points/CollectionPoints.
 import UsersAdmin from "../pages/admin/users/Users.jsx";
 import ContentAdmin from "../pages/admin/content/ContentAdmin.jsx";
 import ClothTypesAdmin from "../pages/admin/cloth-types/ClothTypes.jsx";
+import CashbackRules from "../pages/admin/cashback-rules/CashbackRules.jsx";
+import Wallet from "../pages/wallet/Wallet.jsx";
+import DisposalReview from "../pages/collection-point/DisposalReview.jsx";
 //acess denied
 import AccessDenied from "../pages/access-denied/AccessDenied.jsx";
 // Manager
@@ -54,6 +57,7 @@ function AppRoutes() {
 
       <Route element={<ProtectedRoute />}>
         <Route path="/perfil" element={<Profile />} />
+        <Route path="/carteira" element={<Wallet />} />
       </Route>
 
       {/* admin */}
@@ -63,6 +67,7 @@ function AppRoutes() {
           <Route path="/admin/campaigns" element={<CampaignsAdmin />} />
           <Route path="/admin/collect-points" element={<CollectionPoints />} />
           <Route path="/admin/cloth-types" element={<ClothTypesAdmin />} />
+          <Route path="/admin/cashback-rules" element={<CashbackRules />} />
           <Route path="/admin/users" element={<UsersAdmin />} />
           <Route path="/admin/content" element={<ContentAdmin />} />
         </Route>
@@ -78,6 +83,7 @@ function AppRoutes() {
           <Route path="tecidos" element={<ManagerFeaturePending title="Tecidos Aceitos" />} />
           <Route path="operadores" element={<ManagerFeaturePending title="Operadores" />} />
           <Route path="recebimentos" element={<ManagerFeaturePending title="Recebimentos" />} />
+          <Route path="descartes" element={<DisposalReview />} />
         </Route>
       </Route>
 
@@ -88,6 +94,7 @@ function AppRoutes() {
           <Route path="dashboard" element={<OperatorDashboard />} />
           <Route path="receber" element={<ReceiveMaterial />} />
           <Route path="recebimentos" element={<ReceiptsOperator />} />
+          <Route path="descartes" element={<DisposalReview />} />
         </Route>
       </Route>
     </Routes>

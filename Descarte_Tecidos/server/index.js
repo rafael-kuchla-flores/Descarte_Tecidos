@@ -275,6 +275,10 @@ const defaultState = {
     { id: 2, pointId: 1, operatorId: 3, material: 'Jeans', quantity: '8 kg', responsavel: 'Operador do Ponto', createdAt: '2026-09-10T09:30:00.000Z', notes: 'Material separado' },
     { id: 3, pointId: 1, operatorId: 3, material: 'Poli�ster', quantity: '15 kg', responsavel: 'Operador do Ponto', createdAt: '2026-09-09T11:15:00.000Z', notes: 'Enviado para reciclagem' },
   ],
+  cashbackRule: { id: 1, pointsPerKg: 1, updatedAt: new Date().toISOString() },
+  wallets: [],
+  cashbackTransactions: [],
+  disposals: [],
 };
 
 const readState = () => {
@@ -334,6 +338,12 @@ const readState = () => {
       campaigns: Array.isArray(parsed.campaigns) ? parsed.campaigns : structuredClone(defaultState.campaigns),
       contents: Array.isArray(parsed.contents) ? parsed.contents : structuredClone(defaultState.contents),
       receipts: Array.isArray(parsed.receipts) ? parsed.receipts : structuredClone(defaultState.receipts),
+      cashbackRule: parsed.cashbackRule && typeof parsed.cashbackRule === 'object'
+        ? parsed.cashbackRule
+        : structuredClone(defaultState.cashbackRule),
+      wallets: Array.isArray(parsed.wallets) ? parsed.wallets : [],
+      cashbackTransactions: Array.isArray(parsed.cashbackTransactions) ? parsed.cashbackTransactions : [],
+      disposals: Array.isArray(parsed.disposals) ? parsed.disposals : [],
     };
   } catch (error) {
     console.error('Erro ao carregar dados do backend:', error);
@@ -741,6 +751,77 @@ const normalizeReceipt = (receipt) => {
     data: receipt.data || new Date().toLocaleDateString('pt-BR'),
     responsavel: receipt.responsavel || 'Operador',
   };
+};
+
+const roundPoints = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+
+const getNextId = (items) => Math.max(Date.now(), ...items.map((item) => Number(item.id) || 0)) + 1;
+
+const getWallet = (userId) => state.wallets.find((wallet) => Number(wallet.userId) === Number(userId));
+
+const getDisposalResponse = (disposal) => {
+  const user = state.users.find((item) => Number(item.id) === Number(disposal.userId));
+  const point = state.collectionPoints.find((item) => Number(item.id) === Number(disposal.collectionPointId));
+  const clothTypes = (disposal.clothTypeIds || [])
+    .map((id) => state.clothTypes.find((item) => Number(item.id) === Number(id))?.name)
+    .filter(Boolean);
+
+  return {
+    id: Number(disposal.id),
+    userName: user?.name || 'Usuário',
+    collectionPointName: point?.name || 'Ponto de coleta',
+    approximateWeightInKg: Number(disposal.approximateWeightInKg),
+    clothTypes,
+    status: disposal.status,
+    justification: disposal.justification || null,
+    generatedCashback: Boolean(disposal.generatedCashback),
+    pointsPerKg: Number(disposal.pointsPerKg),
+    earnedPoints: Number(disposal.earnedPoints || 0),
+    createdAt: disposal.createdAt,
+  };
+};
+
+const getTransactionResponse = (transaction) => ({
+  id: Number(transaction.id),
+  type: transaction.type,
+  description: transaction.description,
+  value: Number(transaction.value),
+  dateTimeTransaction: transaction.dateTimeTransaction,
+  status: transaction.status,
+});
+
+const getPageOptions = (query, defaultSize = 20) => {
+  const page = query.page === undefined ? 0 : Number(query.page);
+  const size = query.size === undefined ? defaultSize : Number(query.size);
+  if (!Number.isInteger(page) || page < 0 || !Number.isInteger(size) || size < 1 || size > 100) {
+    return null;
+  }
+  return { page, size };
+};
+
+const sortItems = (items, sortParams, allowedFields, defaultSort) => {
+  const rawSorts = sortParams === undefined ? [] : Array.isArray(sortParams) ? sortParams : [sortParams];
+  const criteria = rawSorts.length ? rawSorts : [defaultSort];
+  const parsedCriteria = [];
+
+  for (const criterion of criteria) {
+    const [property, rawDirection = 'asc'] = String(criterion).split(',');
+    const direction = rawDirection.toLowerCase();
+    if (!allowedFields.includes(property) || !['asc', 'desc'].includes(direction)) return null;
+    parsedCriteria.push({ property, direction });
+  }
+
+  return [...items].sort((left, right) => {
+    for (const { property, direction } of parsedCriteria) {
+      const leftValue = left[property] ?? '';
+      const rightValue = right[property] ?? '';
+      const comparison = typeof leftValue === 'string'
+        ? leftValue.localeCompare(String(rightValue), 'pt-BR', { sensitivity: 'base' })
+        : leftValue < rightValue ? -1 : leftValue > rightValue ? 1 : 0;
+      if (comparison !== 0) return direction === 'asc' ? comparison : -comparison;
+    }
+    return 0;
+  });
 };
 
 const formatPointAddress = (point) => typeof point.address === 'string'
@@ -1602,6 +1683,264 @@ app.delete('/api/v1/admin/posts/:id', requireAuth, requireRole('ADMIN'), (req, r
   post.updatedAt = post.deletedAt;
   saveState();
   return res.status(204).end();
+});
+
+app.get('/api/v1/admin/cashback-rules/current', requireAuth, requireRole('ADMIN'), (_req, res) => {
+  return res.json(state.cashbackRule);
+});
+
+app.put('/api/v1/admin/cashback-rules/points-per-kg', requireAuth, requireRole('ADMIN'), (req, res) => {
+  const pointsPerKg = Number(req.body?.pointsPerKg);
+  if (!Number.isFinite(pointsPerKg) || pointsPerKg <= 0) {
+    return res.status(400).json({
+      message: 'Informe uma taxa de pontos por kg maior que zero.',
+      fieldErrors: [{ field: 'pointsPerKg', message: 'A taxa deve ser um número maior que zero.' }],
+    });
+  }
+
+  state.cashbackRule = {
+    ...state.cashbackRule,
+    pointsPerKg: roundPoints(pointsPerKg),
+    updatedAt: new Date().toISOString(),
+  };
+  saveState();
+  return res.json(state.cashbackRule);
+});
+
+app.get('/api/v1/cloth-types', (_req, res) => {
+  const activeTypes = state.clothTypes
+    .filter((clothType) => clothType.isActive ?? clothType.active ?? true)
+    .map(normalizeClothType);
+  return res.json(activeTypes);
+});
+
+app.get('/api/v1/cashback/balance', requireAuth, (req, res) => {
+  const wallet = getWallet(req.user.id);
+  if (!wallet) return res.status(404).json({ message: 'Carteira de cashback não encontrada.' });
+  return res.json({ balance: Number(wallet.balance), updatedAt: wallet.updatedAt });
+});
+
+app.get('/api/v1/cashback/history', requireAuth, (req, res) => {
+  const filter = req.query.filter;
+  if (filter !== undefined && !['CREDIT', 'DEBIT'].includes(String(filter).toUpperCase())) {
+    return res.status(400).json({ message: 'Tipo de filtro inválido. Use CREDIT ou DEBIT.' });
+  }
+  const pagination = getPageOptions(req.query);
+  if (!pagination) return res.status(400).json({ message: 'Parâmetros de paginação inválidos.' });
+
+  const transactions = state.cashbackTransactions
+    .filter((item) => Number(item.userId) === Number(req.user.id))
+    .filter((item) => !filter || item.type === String(filter).toUpperCase())
+    .map(getTransactionResponse);
+  const sorted = sortItems(
+    transactions,
+    req.query.sort,
+    ['id', 'type', 'description', 'value', 'dateTimeTransaction', 'status'],
+    'dateTimeTransaction,desc',
+  );
+  if (!sorted) return res.status(400).json({ message: 'Critério de ordenação inválido.' });
+
+  return res.json(buildPagination(sorted, pagination.page, pagination.size));
+});
+
+app.post('/api/v1/cashback/redeem', requireAuth, (req, res) => {
+  const amount = Number(req.body?.amount);
+  const description = String(req.body?.description || '').trim();
+  const partnerStore = String(req.body?.partnerStore || '').trim();
+  const fieldErrors = [];
+  if (!Number.isFinite(amount) || amount < 0.01) {
+    fieldErrors.push({ field: 'amount', message: 'Informe uma quantidade de pontos maior ou igual a 0,01.' });
+  }
+  if (!description) fieldErrors.push({ field: 'description', message: 'Informe a descrição do resgate.' });
+  if (!partnerStore) fieldErrors.push({ field: 'partnerStore', message: 'Informe a loja parceira.' });
+  if (fieldErrors.length) return res.status(400).json({ message: 'Erro de validação nos campos enviados.', fieldErrors });
+
+  const wallet = getWallet(req.user.id);
+  if (!wallet) return res.status(404).json({ message: 'Carteira de cashback não encontrada.' });
+  if (Number(wallet.balance) < amount) {
+    return res.status(400).json({
+      message: 'Saldo insuficiente para realizar o resgate.',
+      fieldErrors: [{ field: 'amount', message: 'O valor solicitado excede o saldo disponível.' }],
+    });
+  }
+
+  const dateTimeTransaction = new Date().toISOString();
+  wallet.balance = roundPoints(Number(wallet.balance) - amount);
+  wallet.updatedAt = dateTimeTransaction;
+  state.cashbackTransactions.unshift({
+    id: getNextId(state.cashbackTransactions),
+    userId: Number(req.user.id),
+    type: 'DEBIT',
+    description: `${description} · ${partnerStore}`,
+    partnerStore,
+    value: roundPoints(amount),
+    dateTimeTransaction,
+    status: 'COMPLETED',
+  });
+  saveState();
+  return res.json({ balance: wallet.balance, updatedAt: wallet.updatedAt });
+});
+
+app.post('/api/v1/disposals', requireAuth, requireRole('USER', 'DOADOR'), (req, res) => {
+  const collectionPointId = Number(req.body?.collectionPointId);
+  const approximateWeightInKg = Number(req.body?.approximateWeightInKg);
+  const clothTypeIds = req.body?.clothTypeIds;
+  const point = state.collectionPoints.find((item) => Number(item.id) === collectionPointId);
+  const fieldErrors = [];
+
+  if (!Number.isInteger(collectionPointId) || !point || point.status !== 'ACTIVE') {
+    fieldErrors.push({ field: 'collectionPointId', message: 'Selecione um ponto de coleta ativo.' });
+  }
+  if (!Number.isFinite(approximateWeightInKg) || approximateWeightInKg <= 0) {
+    fieldErrors.push({ field: 'approximateWeightInKg', message: 'Informe um peso maior que zero.' });
+  }
+  if (!Array.isArray(clothTypeIds) || clothTypeIds.length === 0) {
+    fieldErrors.push({ field: 'clothTypeIds', message: 'Selecione ao menos um tipo de tecido.' });
+  } else if (new Set(clothTypeIds.map(Number)).size !== clothTypeIds.length
+    || clothTypeIds.some((id) => !state.clothTypes.some((type) =>
+      Number(type.id) === Number(id) && (type.isActive ?? type.active ?? true)))) {
+    fieldErrors.push({ field: 'clothTypeIds', message: 'Os tipos de tecido selecionados são inválidos.' });
+  } else if (point) {
+    const acceptedIds = point.clothTypeIds
+      || (point.acceptedClothTypes || []).map((name) =>
+        state.clothTypes.find((type) => type.name === name)?.id).filter(Boolean);
+    if (clothTypeIds.some((id) => !acceptedIds.some((acceptedId) => Number(acceptedId) === Number(id)))) {
+      fieldErrors.push({ field: 'clothTypeIds', message: 'O ponto selecionado não aceita um ou mais tecidos informados.' });
+    }
+  }
+
+  if (fieldErrors.length) return res.status(400).json({ message: 'Erro de validação nos campos enviados.', fieldErrors });
+
+  const disposal = {
+    id: getNextId(state.disposals),
+    userId: Number(req.user.id),
+    collectionPointId,
+    approximateWeightInKg: roundPoints(approximateWeightInKg),
+    clothTypeIds: clothTypeIds.map(Number),
+    status: 'PENDING',
+    justification: null,
+    generatedCashback: false,
+    pointsPerKg: Number(state.cashbackRule.pointsPerKg),
+    earnedPoints: 0,
+    createdAt: new Date().toISOString(),
+  };
+  state.disposals.unshift(disposal);
+  saveState();
+  return res.status(201).json(getDisposalResponse(disposal));
+});
+
+app.get('/api/v1/disposals/my-disposals', requireAuth, (req, res) => {
+  const pagination = getPageOptions(req.query);
+  if (!pagination) return res.status(400).json({ message: 'Parâmetros de paginação inválidos.' });
+  const disposals = state.disposals
+    .filter((item) => Number(item.userId) === Number(req.user.id))
+    .map(getDisposalResponse);
+  const sorted = sortItems(disposals, req.query.sort, ['id', 'status', 'createdAt', 'approximateWeightInKg'], 'createdAt,desc');
+  if (!sorted) return res.status(400).json({ message: 'Critério de ordenação inválido.' });
+  return res.json(buildPagination(sorted, pagination.page, pagination.size));
+});
+
+app.get('/api/v1/disposals/collection-point/:collectionPointId', requireAuth, requireRole('ADMIN', 'PONTO_COLETA_GERENTE', 'PONTO_COLETA_OPERADOR'), (req, res) => {
+  const collectionPointId = Number(req.params.collectionPointId);
+  const point = state.collectionPoints.find((item) => Number(item.id) === collectionPointId);
+  if (!point) return res.status(404).json({ message: 'Ponto de coleta não encontrado.' });
+  if (req.user.role !== 'ADMIN' && Number(getCurrentPointForUser(req.user.id)?.id) !== collectionPointId) {
+    return res.status(403).json({ message: 'Acesso negado a este ponto de coleta.' });
+  }
+
+  const pagination = getPageOptions(req.query);
+  if (!pagination) return res.status(400).json({ message: 'Parâmetros de paginação inválidos.' });
+  const disposals = state.disposals
+    .filter((item) => Number(item.collectionPointId) === collectionPointId)
+    .map(getDisposalResponse);
+  const sorted = sortItems(disposals, req.query.sort, ['id', 'status', 'createdAt', 'approximateWeightInKg'], 'createdAt,desc');
+  if (!sorted) return res.status(400).json({ message: 'Critério de ordenação inválido.' });
+  return res.json(buildPagination(sorted, pagination.page, pagination.size));
+});
+
+app.get('/api/v1/disposals/collection-point/:collectionPointId/pending', requireAuth, requireRole('ADMIN', 'PONTO_COLETA_GERENTE', 'PONTO_COLETA_OPERADOR'), (req, res) => {
+  const collectionPointId = Number(req.params.collectionPointId);
+  const point = state.collectionPoints.find((item) => Number(item.id) === collectionPointId);
+  if (!point) return res.status(404).json({ message: 'Ponto de coleta não encontrado.' });
+  if (req.user.role !== 'ADMIN' && Number(getCurrentPointForUser(req.user.id)?.id) !== collectionPointId) {
+    return res.status(403).json({ message: 'Acesso negado a este ponto de coleta.' });
+  }
+
+  const pagination = getPageOptions(req.query);
+  if (!pagination) return res.status(400).json({ message: 'Parâmetros de paginação inválidos.' });
+  const disposals = state.disposals
+    .filter((item) => Number(item.collectionPointId) === collectionPointId && item.status === 'PENDING')
+    .map(getDisposalResponse);
+  const sorted = sortItems(disposals, req.query.sort, ['id', 'createdAt', 'approximateWeightInKg'], 'createdAt,asc');
+  if (!sorted) return res.status(400).json({ message: 'Critério de ordenação inválido.' });
+  return res.json(buildPagination(sorted, pagination.page, pagination.size));
+});
+
+const findAuthorizedDisposal = (req, res) => {
+  const disposal = state.disposals.find((item) => Number(item.id) === Number(req.params.id));
+  if (!disposal) {
+    res.status(404).json({ message: 'Descarte não encontrado.' });
+    return null;
+  }
+  if (req.user.role !== 'ADMIN'
+    && Number(getCurrentPointForUser(req.user.id)?.id) !== Number(disposal.collectionPointId)) {
+    res.status(403).json({ message: 'Acesso negado a este descarte.' });
+    return null;
+  }
+  return disposal;
+};
+
+app.patch('/api/v1/disposals/:id/confirm', requireAuth, requireRole('ADMIN', 'PONTO_COLETA_GERENTE', 'PONTO_COLETA_OPERADOR'), (req, res) => {
+  const disposal = findAuthorizedDisposal(req, res);
+  if (!disposal) return;
+  if (disposal.status !== 'PENDING') return res.status(400).json({ message: 'Somente descartes pendentes podem ser confirmados.' });
+
+  const pointsPerKg = Number(disposal.pointsPerKg);
+  if (!Number.isFinite(pointsPerKg) || pointsPerKg <= 0) {
+    return res.status(400).json({ message: 'A taxa de cashback precisa ser configurada antes de confirmar este descarte.' });
+  }
+  const earnedPoints = roundPoints(Number(disposal.approximateWeightInKg) * pointsPerKg);
+  const now = new Date().toISOString();
+  let wallet = getWallet(disposal.userId);
+  if (!wallet) {
+    wallet = { userId: Number(disposal.userId), balance: 0, updatedAt: now };
+    state.wallets.push(wallet);
+  }
+  wallet.balance = roundPoints(Number(wallet.balance) + earnedPoints);
+  wallet.updatedAt = now;
+  disposal.status = 'CONFIRMED';
+  disposal.generatedCashback = true;
+  disposal.earnedPoints = earnedPoints;
+  state.cashbackTransactions.unshift({
+    id: getNextId(state.cashbackTransactions),
+    userId: Number(disposal.userId),
+    type: 'CREDIT',
+    description: `Cashback pelo descarte #${disposal.id}`,
+    value: earnedPoints,
+    dateTimeTransaction: now,
+    status: 'CONFIRMED',
+    disposalId: Number(disposal.id),
+  });
+  saveState();
+  return res.json(getDisposalResponse(disposal));
+});
+
+app.patch('/api/v1/disposals/:id/reject', requireAuth, requireRole('ADMIN', 'PONTO_COLETA_GERENTE', 'PONTO_COLETA_OPERADOR'), (req, res) => {
+  const disposal = findAuthorizedDisposal(req, res);
+  if (!disposal) return;
+  if (disposal.status !== 'PENDING') return res.status(400).json({ message: 'Somente descartes pendentes podem ser rejeitados.' });
+
+  const justification = String(req.body?.justification || '').trim();
+  if (!justification) {
+    return res.status(400).json({
+      message: 'Informe a justificativa da rejeição.',
+      fieldErrors: [{ field: 'justification', message: 'A justificativa é obrigatória.' }],
+    });
+  }
+  disposal.status = 'REJECTED';
+  disposal.justification = justification;
+  saveState();
+  return res.json(getDisposalResponse(disposal));
 });
 
 app.get('/api/v1/manager/collection-point', requireAuth, requireRole('PONTO_COLETA_GERENTE'), (req, res) => {

@@ -43,3 +43,15 @@ Endpoints locais para estes fluxos:
 - `POST /api/v1/admin/collection-points/{id}/approve-update` e `POST /api/v1/admin/collection-points/{id}/reject-update`
 - `GET /api/v1/admin/collection-points/{id}/users`
 - `PATCH /api/v1/admin/collection-points/{id}/users/operators` com `{ "document": "..." }`
+
+## Descartes e cashback
+
+Doadores podem registrar descartes em pontos ativos e consultar seus descartes e transações na página **Cashback e carteira**. Gerentes e operadores do ponto confirmam ou rejeitam descartes pendentes; a confirmação credita cashback à carteira. Administradores configuram a taxa de pontos por kg em **Regras de cashback**. A taxa inicial local é 1 ponto/kg e pode ser alterada pelo administrador. O limite diário de cashback ainda não é aplicado.
+
+Endpoints locais:
+
+- `POST /api/v1/disposals`, `GET /api/v1/disposals/my-disposals`
+- `GET /api/v1/disposals/collection-point/{collectionPointId}` e `/pending`
+- `PATCH /api/v1/disposals/{id}/confirm` e `/reject`
+- `GET /api/v1/cashback/balance`, `GET /api/v1/cashback/history` e `POST /api/v1/cashback/redeem`
+- `GET /api/v1/admin/cashback-rules/current` e `PUT /api/v1/admin/cashback-rules/points-per-kg`
