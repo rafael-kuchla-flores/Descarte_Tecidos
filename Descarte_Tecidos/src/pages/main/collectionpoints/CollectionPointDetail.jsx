@@ -1,6 +1,6 @@
 
-import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import {
   RiArrowLeftLine,
   RiTimeLine,
@@ -19,6 +19,8 @@ import {
 import Header from '../../../components/header/Header'
 import collectionPointService from '../../../services/collectionPointService'
 
+const FAVORITES_STORAGE_KEY = 'ecotecido:favoriteCollectionPoints'
+
 const ICONS = {
   building: RiBuildingLine,
   recycle: RiRecycleLine,
@@ -33,7 +35,14 @@ const getMaterialName = (material) => {
   }
 
   if (material && typeof material === 'object') {
-    return material.name || material.label || material.description || ''
+    return (
+      material.name ||
+      material.label ||
+      material.clothType?.name ||
+      material.material?.name ||
+      material.description ||
+      ''
+    )
   }
 
   return ''
@@ -72,13 +81,43 @@ const getStatusInfo = (status) => {
   }
 }
 
+// Reads locally saved favorite IDs.
+const readFavorites = () => {
+  const storedValue = localStorage.getItem(FAVORITES_STORAGE_KEY)
+  const parsedValue = JSON.parse(storedValue || '[]')
+
+  if (!Array.isArray(parsedValue)) {
+    throw new Error('Invalid favorites data')
+  }
+
+  return parsedValue.map(String)
+}
+
 const CollectionPointDetail = () => {
   const { id } = useParams()
 
   const [point, setPoint] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [retryKey, setRetryKey] = useState(0)
+
   const [isFavorite, setIsFavorite] = useState(false)
+  const [favoriteError, setFavoriteError] = useState('')
+
+  // Loads the favorite state when the collection point changes.
+  useEffect(() => {
+    try {
+      const favorites = readFavorites()
+
+      setIsFavorite(favorites.includes(String(id)))
+      setFavoriteError('')
+    } catch {
+      setIsFavorite(false)
+      setFavoriteError(
+        'Não foi possível consultar os favoritos salvos.'
+      )
+    }
+  }, [id])
 
   // Loads collection point details from the API.
   useEffect(() => {
@@ -104,8 +143,9 @@ const CollectionPointDetail = () => {
         if (!cancelled) {
           setPoint(null)
           setError(
-            requestError?.message ||
-              'Não foi possível carregar o ponto de coleta.'
+            requestError?.status === 401
+              ? 'É necessário autenticar-se para consultar este ponto.'
+              : 'Não foi possível carregar o ponto de coleta.'
           )
         }
       } finally {
@@ -120,7 +160,37 @@ const CollectionPointDetail = () => {
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [id, retryKey])
+
+  // Saves or removes a favorite in localStorage.
+  const handleFavorite = () => {
+    try {
+      const favorites = readFavorites()
+      const pointId = String(id)
+
+      const alreadyFavorite = favorites.includes(pointId)
+
+      const updatedFavorites = alreadyFavorite
+        ? favorites.filter((favoriteId) => favoriteId !== pointId)
+        : [...favorites, pointId]
+
+      localStorage.setItem(
+        FAVORITES_STORAGE_KEY,
+        JSON.stringify(updatedFavorites)
+      )
+
+      setIsFavorite(!alreadyFavorite)
+      setFavoriteError('')
+    } catch {
+      setFavoriteError(
+        'Não foi possível salvar o favorito neste navegador.'
+      )
+    }
+  }
+
+  const handleRetry = () => {
+    setRetryKey((previous) => previous + 1)
+  }
 
   // Shows a loading message while requesting the API.
   if (loading) {
@@ -128,11 +198,8 @@ const CollectionPointDetail = () => {
       <>
         <Header />
 
-        <main className="max-w-6xl mx-auto px-4 py-12 text-center">
-          <p
-            role="status"
-            className="text-gray-500"
-          >
+        <main className="mx-auto max-w-6xl px-4 py-12 text-center">
+          <p role="status" className="text-gray-500">
             Carregando informações do ponto de coleta...
           </p>
         </main>
@@ -140,56 +207,89 @@ const CollectionPointDetail = () => {
     )
   }
 
-  // Shows an error or not-found message when the point is unavailable.
+  // Shows an error or not-found message.
   if (error || !point) {
     return (
       <>
         <Header />
 
-        <main className="max-w-6xl mx-auto px-4 py-12 text-center">
+        <main className="mx-auto max-w-6xl px-4 py-12 text-center">
           <h2
             role={error ? 'alert' : undefined}
-            className="text-xl font-bold text-gray-800 mb-3"
+            className="mb-3 text-xl font-bold text-gray-800"
           >
             {error || 'Ponto de coleta não encontrado'}
           </h2>
 
-          <p className="text-sm text-gray-500 mb-5">
+          <p className="mb-5 text-sm text-gray-500">
             {error
               ? 'Verifique sua conexão ou autenticação e tente novamente.'
               : 'O ponto solicitado não está disponível.'}
           </p>
 
-          <Link
-            to="/pontos-de-coleta"
-            className="inline-flex items-center gap-2 text-green-800 font-semibold hover:underline"
-          >
-            <RiArrowLeftLine />
-            Voltar para a lista
-          </Link>
+          <div className="flex flex-wrap justify-center gap-4">
+            {error && (
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="rounded-lg bg-green-900 px-4 py-2 font-semibold text-white hover:bg-green-800"
+              >
+                Tentar novamente
+              </button>
+            )}
+
+            <Link
+              to="/pontos-de-coleta"
+              className="inline-flex items-center gap-2 font-semibold text-green-800 hover:underline"
+            >
+              <RiArrowLeftLine />
+              Voltar para a lista
+            </Link>
+          </div>
         </main>
       </>
     )
   }
 
   const Icon = ICONS[point.iconType] || RiBuildingLine
-
   const statusInfo = getStatusInfo(point.status)
 
-  const materials = Array.isArray(point.materials)
-    ? point.materials.map(getMaterialName).filter(Boolean)
-    : []
+  const materialsSource = Array.isArray(point.materials)
+    ? point.materials
+    : Array.isArray(point.acceptedClothTypes)
+      ? point.acceptedClothTypes
+      : []
+
+  const materials = [
+    ...new Set(materialsSource.map(getMaterialName).filter(Boolean)),
+  ]
 
   const address = point.address || 'Endereço não informado'
   const city = point.city || ''
 
   const fullAddress = [address, city]
-    .filter(Boolean)
+    .filter(
+      (value, index) =>
+        index === 0 ||
+        !address.toLowerCase().includes(String(value).toLowerCase())
+    )
     .join(', ')
 
-  const mapDestination = [point.name, fullAddress]
-    .filter(Boolean)
-    .join(', ')
+  const hasCoordinates =
+    point.latitude !== null &&
+    point.latitude !== undefined &&
+    point.longitude !== null &&
+    point.longitude !== undefined &&
+    Number.isFinite(Number(point.latitude)) &&
+    Number.isFinite(Number(point.longitude))
+
+  const mapDestination = hasCoordinates
+    ? `${point.latitude},${point.longitude}`
+    : [point.name, fullAddress].filter(Boolean).join(', ')
+
+  const hasMapDestination =
+    hasCoordinates ||
+    (address !== 'Endereço não informado' && Boolean(address))
 
   const googleMapsDirectionsUrl =
     `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
@@ -201,55 +301,54 @@ const CollectionPointDetail = () => {
       mapDestination
     )}&t=&z=15&ie=UTF8&iwloc=&output=embed`
 
-  const handleFavorite = () => {
-    setIsFavorite((currentValue) => !currentValue)
-  }
-
   return (
     <>
       <Header />
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <main className="mx-auto max-w-6xl px-4 py-8">
         {/* Back navigation */}
         <Link
           to="/pontos-de-coleta"
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-6 font-medium"
+          className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-800"
         >
           <RiArrowLeftLine className="text-base" />
           Voltar para os pontos
         </Link>
 
         {/* Main layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
           {/* Left column */}
-          <div className="lg:col-span-7 flex flex-col gap-6">
+          <div className="flex flex-col gap-6 lg:col-span-7">
             {/* Collection point header */}
             <div className="flex items-start gap-4">
-              <div className="w-20 h-20 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
                 {point.photo ? (
                   <img
                     src={point.photo}
                     alt={`Foto de ${point.name}`}
                     className="h-full w-full object-cover"
+                    onError={(event) => {
+                      event.currentTarget.style.display = 'none'
+                    }}
                   />
                 ) : (
                   <Icon className="text-4xl text-[#153D2C]" />
                 )}
               </div>
 
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              <div className="min-w-0">
+                <h1 className="break-words text-2xl font-bold text-gray-900 sm:text-3xl">
                   {point.name}
                 </h1>
 
                 {city && (
-                  <p className="text-sm text-gray-500 mt-0.5 font-medium">
+                  <p className="mt-0.5 text-sm font-medium text-gray-500">
                     {city}
                   </p>
                 )}
 
                 <span
-                  className={`inline-flex mt-2 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase ${statusInfo.className}`}
+                  className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold uppercase ${statusInfo.className}`}
                 >
                   {statusInfo.label}
                 </span>
@@ -259,70 +358,75 @@ const CollectionPointDetail = () => {
             {/* Opening hours and phone */}
             <div className="flex flex-col gap-2.5 text-sm text-gray-700">
               <div className="flex items-center gap-2">
-                <RiTimeLine className="text-red-500 text-lg shrink-0" />
+                <RiTimeLine className="shrink-0 text-lg text-red-500" />
 
                 <span>
-                  {point.hours || 'Horário não informado'}
+                  {point.hours === 'Horário comercial'
+                    ? 'Horário não informado'
+                    : point.hours || 'Horário não informado'}
                 </span>
               </div>
 
               {point.phone && (
                 <div className="flex items-center gap-2">
-                  <RiPhoneLine className="text-red-500 text-lg shrink-0" />
+                  <RiPhoneLine className="shrink-0 text-lg text-red-500" />
 
-                  <span>{point.phone}</span>
+                  <a
+                    href={`tel:${String(point.phone).replace(/[^\d+]/g, '')}`}
+                    className="break-all hover:underline"
+                  >
+                    {point.phone}
+                  </a>
                 </div>
               )}
             </div>
 
             {/* Description */}
             {point.description && (
-              <p className="text-gray-600 text-sm leading-relaxed">
+              <p className="text-sm leading-relaxed text-gray-600">
                 {point.description}
               </p>
             )}
 
             {/* Address and accepted materials */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Address card */}
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                <div className="flex items-center gap-2 text-gray-900 font-bold mb-2">
-                  <RiMapPin2Line className="text-red-500 text-lg" />
-
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <div className="mb-2 flex items-center gap-2 font-bold text-gray-900">
+                  <RiMapPin2Line className="text-lg text-red-500" />
                   <span>Endereço</span>
                 </div>
 
-                <p className="text-sm text-gray-700 leading-snug">
+                <p className="text-sm leading-snug text-gray-700">
                   {address}
                 </p>
 
-                {city && !address.toLowerCase().includes(city.toLowerCase()) && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    {city}
-                  </p>
-                )}
+                {city &&
+                  !address.toLowerCase().includes(city.toLowerCase()) && (
+                    <p className="mt-1 text-sm text-gray-500">
+                      {city}
+                    </p>
+                  )}
               </div>
 
               {/* Accepted materials card */}
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                <div className="flex items-center gap-2 text-gray-900 font-bold mb-2">
-                  <RiCheckboxCircleLine className="text-emerald-600 text-lg" />
-
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <div className="mb-2 flex items-center gap-2 font-bold text-gray-900">
+                  <RiCheckboxCircleLine className="text-lg text-emerald-600" />
                   <span>Materiais aceitos</span>
                 </div>
 
                 {materials.length > 0 ? (
-                  <ul className="text-sm text-gray-700 space-y-1.5">
-                    {materials.map((material, index) => (
+                  <ul className="space-y-1.5 text-sm text-gray-700">
+                    {materials.map((material) => (
                       <li
-                        key={`${material}-${index}`}
+                        key={material}
                         className="flex items-center gap-1.5"
                       >
                         <RiCheckboxCircleLine
                           aria-hidden="true"
-                          className="text-emerald-600 text-sm shrink-0"
+                          className="shrink-0 text-sm text-emerald-600"
                         />
-
                         <span>{material}</span>
                       </li>
                     ))}
@@ -337,53 +441,82 @@ const CollectionPointDetail = () => {
 
             {/* Action buttons */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
-              <a
-                href={googleMapsDirectionsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-[#153D2C] hover:bg-[#1e543d] text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors shadow-sm"
-              >
-                <RiMap2Line className="text-lg" />
-                Como chegar
-              </a>
+              {hasMapDestination && (
+                <a
+                  href={googleMapsDirectionsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#153D2C] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1e543d]"
+                >
+                  <RiMap2Line className="text-lg" />
+                  Como chegar
+                </a>
+              )}
 
               <button
                 type="button"
                 onClick={handleFavorite}
                 aria-pressed={isFavorite}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm border transition-colors ${
+                aria-label={
                   isFavorite
-                    ? 'bg-rose-50 border-rose-200 text-rose-600'
-                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                    ? 'Remover ponto dos favoritos'
+                    : 'Adicionar ponto aos favoritos'
+                }
+                className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
+                  isFavorite
+                    ? 'border-rose-200 bg-rose-50 text-rose-600'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                 }`}
               >
                 {isFavorite ? (
-                  <RiHeartFill className="text-rose-500 text-lg" />
+                  <RiHeartFill className="text-lg text-rose-500" />
                 ) : (
-                  <RiHeartLine className="text-gray-400 text-lg" />
+                  <RiHeartLine className="text-lg text-gray-400" />
                 )}
 
                 <span>
                   {isFavorite ? 'Favoritado' : 'Favoritar'}
                 </span>
               </button>
+
+              {favoriteError && (
+                <p
+                  role="alert"
+                  className="w-full text-sm text-red-700"
+                >
+                  {favoriteError}
+                </p>
+              )}
+
+              <p className="w-full text-xs text-gray-500">
+                Os favoritos são salvos apenas neste navegador.
+                Ainda não são sincronizados com sua conta.
+              </p>
             </div>
           </div>
 
           {/* Right column: Google Maps */}
           <div className="lg:col-span-5">
-            <div className="w-full h-80 sm:h-96 lg:h-[420px] rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-gray-100">
-              <iframe
-                title={`Mapa de localização - ${point.name}`}
-                src={googleMapsEmbedUrl}
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
-            </div>
+            {hasMapDestination ? (
+              <div className="h-80 w-full overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-sm sm:h-96 lg:h-[420px]">
+                <iframe
+                  title={`Mapa de localização - ${point.name}`}
+                  src={googleMapsEmbedUrl}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            ) : (
+              <div className="flex h-80 items-center justify-center rounded-2xl border border-gray-200 bg-gray-50 p-6 text-center sm:h-96 lg:h-[420px]">
+                <p className="text-sm text-gray-500">
+                  Localização não informada para exibição no mapa.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </main>
