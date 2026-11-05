@@ -28,6 +28,7 @@ const OperatorLayout = () => {
   const menuItems = [
     { name: 'Dashboard', icon: RiLayoutGridLine, path: '/operator/dashboard' },
     { name: 'Recebimentos', icon: RiBox3Line, path: '/operator/recebimentos' },
+    { name: 'Descartes pendentes', icon: RiBox3Line, path: '/operator/descartes' },
     { name: 'Meu Perfil', icon: RiUser3Line, path: '/perfil' },
   ]
 

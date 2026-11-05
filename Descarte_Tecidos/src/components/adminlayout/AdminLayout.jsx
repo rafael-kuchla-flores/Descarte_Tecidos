@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, Link, useNavigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth' 
 import UserAvatar from '../useravatar/UserAvatar'
-import { 
+import {
   RiRecycleFill, 
   RiHome4Line, 
   RiUser3Line, 
@@ -76,6 +76,9 @@ const AdminLayout = () => {
           </NavLink>
           <NavLink to="/admin/cloth-types" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
             <RiShirtLine className="text-lg" /> Tipos de tecido
+          </NavLink>
+          <NavLink to="/admin/cashback-rules" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
+            <RiRecycleFill className="text-lg" /> Regras de cashback
           </NavLink>
           <NavLink to="/admin/campaigns" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
             <RiMegaphoneLine className="text-lg" /> Campanhas

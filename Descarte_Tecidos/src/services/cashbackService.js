@@ -1,12 +1,6 @@
 
 import api from './api';
 
-// These endpoints must be confirmed with the backend team.
-const CASHBACK_ENDPOINTS = {
-  balance: null,
-  transactions: null,
-};
-
 const normalizeBalance = (response) => {
   const rawBalance =
     typeof response === 'number'
@@ -30,35 +24,29 @@ const normalizeBalance = (response) => {
   return balance;
 };
 
+// Return a compatible balance for Profile and Wallet.
 const getBalance = async () => {
-  if (!CASHBACK_ENDPOINTS.balance) {
-    return {
-      available: false,
-      balance: null,
-    };
-  }
-
-  const response = await api(CASHBACK_ENDPOINTS.balance, {
+  const response = await api('/cashback/balance', {
     method: 'GET',
   });
 
   return {
+    ...(typeof response === 'object' && response !== null
+      ? response
+      : {}),
     available: true,
     balance: normalizeBalance(response),
+    updatedAt: response?.updatedAt ?? null,
   };
 };
 
-const getTransactions = async () => {
-  if (!CASHBACK_ENDPOINTS.transactions) {
-    return {
-      available: false,
-      transactions: [],
-    };
-  }
+// Retrieve the paginated cashback history.
+const getHistory = async (params = {}) =>
+  api('/cashback/history', { params });
 
-  const response = await api(CASHBACK_ENDPOINTS.transactions, {
-    method: 'GET',
-  });
+// Preserve the original transaction interface.
+const getTransactions = async (params = {}) => {
+  const response = await getHistory(params);
 
   const transactions = Array.isArray(response)
     ? response
@@ -74,9 +62,75 @@ const getTransactions = async () => {
   };
 };
 
+// Redeem cashback points.
+const redeem = async (request) =>
+  api('/cashback/redeem', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+
+// Retrieve the authenticated user's disposals.
+const getMyDisposals = async (params = {}) =>
+  api('/disposals/my-disposals', { params });
+
+// Register a new disposal.
+const createDisposal = async (request) =>
+  api('/disposals', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+
+// Retrieve available cloth types.
+const getPublicClothTypes = async () =>
+  api('/cloth-types');
+
+// Retrieve pending disposals for a collection point.
+const getPendingDisposals = async (
+  collectionPointId,
+  params = {}
+) =>
+  api(
+    `/disposals/collection-point/${collectionPointId}/pending`,
+    { params }
+  );
+
+// Confirm a disposal.
+const confirmDisposal = async (id) =>
+  api(`/disposals/${id}/confirm`, {
+    method: 'PATCH',
+  });
+
+// Reject a disposal with justification.
+const rejectDisposal = async (id, justification) =>
+  api(`/disposals/${id}/reject`, {
+    method: 'PATCH',
+    body: JSON.stringify({ justification }),
+  });
+
+// Retrieve the current cashback rule.
+const getCurrentRule = async () =>
+  api('/admin/cashback-rules/current');
+
+// Update the points awarded per kilogram.
+const updatePointsPerKg = async (pointsPerKg) =>
+  api('/admin/cashback-rules/points-per-kg', {
+    method: 'PUT',
+    body: JSON.stringify({ pointsPerKg }),
+  });
+
 const cashbackService = {
   getBalance,
+  getHistory,
   getTransactions,
+  redeem,
+  getMyDisposals,
+  createDisposal,
+  getPublicClothTypes,
+  getPendingDisposals,
+  confirmDisposal,
+  rejectDisposal,
+  getCurrentRule,
+  updatePointsPerKg,
 };
 
 export default cashbackService;

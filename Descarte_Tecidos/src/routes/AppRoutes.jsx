@@ -1,3 +1,4 @@
+
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import Home from "../pages/main/home/Home.jsx";
@@ -14,7 +15,9 @@ import PasswordReset from "../pages/auth/password-reset/PasswordReset.jsx";
 import NewPassword from "../pages/auth/password-reset/NewPassword.jsx";
 import Profile from "../pages/profile/Profile.jsx";
 import DisposalRegistration from "../pages/main/disposal/DisposalRegistration.jsx";
-// admin
+import Wallet from "../pages/wallet/Wallet.jsx";
+
+// Admin
 import DashBoard from "../pages/admin/dashboard/DashBoard.jsx";
 import ProtectedRoute from "../routes/ProtectedRoute.jsx";
 import AdminLayout from "../components/adminlayout/AdminLayout.jsx";
@@ -23,23 +26,27 @@ import CollectionPoints from "../pages/admin/collection-points/CollectionPoints.
 import UsersAdmin from "../pages/admin/users/Users.jsx";
 import ContentAdmin from "../pages/admin/content/ContentAdmin.jsx";
 import ClothTypesAdmin from "../pages/admin/cloth-types/ClothTypes.jsx";
-//acess denied
+import CashbackRules from "../pages/admin/cashback-rules/CashbackRules.jsx";
+
+// Access denied
 import AccessDenied from "../pages/access-denied/AccessDenied.jsx";
+
 // Manager
 import ManagerLayout from "../components/managerlayout/ManagerLayout.jsx";
 import ManagerFeaturePending from "../pages/manager/ManagerFeaturePending.jsx";
 import ManagerCollectionPoint from "../pages/manager/collection-point/ManagerCollectionPoint.jsx";
+import DisposalReview from "../pages/collection-point/DisposalReview.jsx";
+
 // Operator
 import OperatorLayout from "../components/operatorlayout/OperatorLayout.jsx";
 import OperatorDashboard from "../pages/operator/dashboard/OperatorDashboard.jsx";
 import ReceiveMaterial from "../pages/operator/dashboard/ReceiveMaterial.jsx";
 import ReceiptsOperator from "../pages/operator/receipts/Receipts.jsx";
 
-
 function AppRoutes() {
   return (
     <Routes>
-      {/* publica */}
+      {/* Public routes */}
       <Route path="/" element={<Home />} />
       <Route path="/como-funciona" element={<About />} />
       <Route path="/pontos-de-coleta" element={<PointsCollection />} />
@@ -53,46 +60,84 @@ function AppRoutes() {
       <Route path="/redefinir-senha" element={<PasswordReset />} />
       <Route path="/redefinir-senha/nova" element={<NewPassword />} />
 
+      {/* Authenticated user routes */}
       <Route element={<ProtectedRoute />}>
         <Route path="/perfil" element={<Profile />} />
         <Route
           path="/registrar-descarte"
           element={<DisposalRegistration />}
         />
+        <Route path="/carteira" element={<Wallet />} />
       </Route>
 
-      {/* admin */}
-      <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+      {/* Admin routes */}
+      <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<DashBoard />} />
           <Route path="/admin/campaigns" element={<CampaignsAdmin />} />
           <Route path="/admin/collect-points" element={<CollectionPoints />} />
           <Route path="/admin/cloth-types" element={<ClothTypesAdmin />} />
+          <Route path="/admin/cashback-rules" element={<CashbackRules />} />
           <Route path="/admin/users" element={<UsersAdmin />} />
           <Route path="/admin/content" element={<ContentAdmin />} />
         </Route>
       </Route>
+
       <Route path="/acesso-negado" element={<AccessDenied />} />
 
-      {/* Manager */}
-      <Route element={<ProtectedRoute allowedRoles={['PONTO_COLETA_GERENTE']} />}>
+      {/* Manager routes */}
+      <Route
+        element={
+          <ProtectedRoute allowedRoles={["PONTO_COLETA_GERENTE"]} />
+        }
+      >
         <Route path="/gerente" element={<ManagerLayout />}>
           <Route index element={<Navigate to="ponto" replace />} />
-          <Route path="ponto" element={<ManagerCollectionPoint />} />
-          <Route path="horarios" element={<ManagerFeaturePending title="Horários" />} />
-          <Route path="tecidos" element={<ManagerFeaturePending title="Tecidos Aceitos" />} />
-          <Route path="operadores" element={<ManagerFeaturePending title="Operadores" />} />
-          <Route path="recebimentos" element={<ManagerFeaturePending title="Recebimentos" />} />
+          <Route
+            path="ponto"
+            element={<ManagerCollectionPoint />}
+          />
+          <Route
+            path="horarios"
+            element={<ManagerFeaturePending title="Horários" />}
+          />
+          <Route
+            path="tecidos"
+            element={<ManagerFeaturePending title="Tecidos Aceitos" />}
+          />
+          <Route
+            path="operadores"
+            element={<ManagerFeaturePending title="Operadores" />}
+          />
+          <Route
+            path="recebimentos"
+            element={<ManagerFeaturePending title="Recebimentos" />}
+          />
+          <Route path="descartes" element={<DisposalReview />} />
         </Route>
       </Route>
 
-      {/* Operator */}
-      <Route element={<ProtectedRoute allowedRoles={['PONTO_COLETA_OPERADOR']} />}>
+      {/* Operator routes */}
+      <Route
+        element={
+          <ProtectedRoute allowedRoles={["PONTO_COLETA_OPERADOR"]} />
+        }
+      >
         <Route path="/operator" element={<OperatorLayout />}>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<OperatorDashboard />} />
+          <Route
+            index
+            element={<Navigate to="dashboard" replace />}
+          />
+          <Route
+            path="dashboard"
+            element={<OperatorDashboard />}
+          />
           <Route path="receber" element={<ReceiveMaterial />} />
-          <Route path="recebimentos" element={<ReceiptsOperator />} />
+          <Route
+            path="recebimentos"
+            element={<ReceiptsOperator />}
+          />
+          <Route path="descartes" element={<DisposalReview />} />
         </Route>
       </Route>
     </Routes>
