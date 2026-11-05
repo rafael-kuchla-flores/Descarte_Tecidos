@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import Header from '../../../components/header/Header'
+import Header from '../../../components/Header/Header'
 import imgresetpassword from '../../../assets/images/imgreset.jpg'
-import Footer from '../../../components/footer/Footer'
+import Footer from '../../../components/Footer/Footer'
 import authService from '../../../services/authService' // Ajuste o caminho se necessário
 
 const PasswordReset = () => {

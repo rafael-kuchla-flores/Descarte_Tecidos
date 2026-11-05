@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import Button from '../btns/Button'
 import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { RiRecycleFill, RiMenuLine, RiCloseLine, RiArrowDownSFill } from 'react-icons/ri'
 import { useAuth } from '../../hooks/useAuth'
@@ -50,6 +49,7 @@ const Header = () => {
                             <li>
                                 <NavLink to="/conteudos" className={linkClass}>Conteúdos</NavLink>
                             </li>
+                            <li className="hidden xl:list-item"><Link to="/conteudos?favoritos=1" className="rounded text-green-800 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2">Favoritos</Link></li>
                             {user && <li><NavLink to="/carteira" className={linkClass}>Carteira</NavLink></li>}
                         </ul>
                     </div>
@@ -79,12 +79,8 @@ const Header = () => {
                         ) : (
 
                             <>
-                                <Link to="/login">
-                                    <Button className="font-bold">Entrar</Button>
-                                </Link>
-                                <Link to="/register">
-                                    <Button className="bg-green-800 text-white font-bold">Cadastrar</Button>
-                                </Link>
+                                <Link to="/login" className="rounded-full border border-green-800 px-5 py-2 text-sm font-bold text-green-800 hover:bg-emerald-50">Entrar</Link>
+                                <Link to="/register" className="rounded-full bg-green-800 px-5 py-2 text-sm font-bold text-white hover:bg-green-900">Cadastrar</Link>
                             </>
                         )}
                     </div>
@@ -93,7 +89,7 @@ const Header = () => {
                     <button
                         onClick={() => setMenuOpen(!menuOpen)}
                         className="rounded text-2xl text-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-800 focus-visible:ring-offset-2 md:hidden"
-                        aria-label="Abrir menu"
+                        aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
                         aria-expanded={menuOpen}
                         aria-controls="mobile-navigation"
                     >
@@ -110,6 +106,7 @@ const Header = () => {
                             <li><NavLink to="/pontos-de-coleta" className={linkClass} onClick={() => setMenuOpen(false)}>Pontos de Coleta</NavLink></li>
                             <li><NavLink to="/campanhas" className={linkClass} onClick={() => setMenuOpen(false)}>Campanhas</NavLink></li>
                             <li><NavLink to="/conteudos" className={linkClass} onClick={() => setMenuOpen(false)}>Conteúdos</NavLink></li>
+                            <li><Link to="/conteudos?favoritos=1" className={linkClass({ isActive: false })} onClick={() => setMenuOpen(false)}>Meus favoritos</Link></li>
                             {user && <li><NavLink to="/carteira" className={linkClass} onClick={() => setMenuOpen(false)}>Cashback e carteira</NavLink></li>}
                         </ul>
 
@@ -125,17 +122,15 @@ const Header = () => {
                                             Olá, {user.name || user.nome || 'Usuário'}
                                         </Link>
                                     </div>
-                                    <Button onClick={() => { handleLogout(); setMenuOpen(false); }} className="w-full bg-red-600 text-white font-bold border-none">
-                                        Sair
-                                    </Button>
+                                    <button type="button" onClick={() => { handleLogout(); setMenuOpen(false); }} className="w-full rounded-full bg-red-600 px-5 py-2 font-bold text-white hover:bg-red-700">Sair</button>
                                 </>
                             ) : (
                                 <div className="flex gap-2">
                                     <Link to="/login" className="w-full" onClick={() => setMenuOpen(false)}>
-                                        <Button className="w-full font-bold">Entrar</Button>
+                                        <span className="block rounded-full border border-green-800 px-4 py-2 text-center font-bold text-green-800">Entrar</span>
                                     </Link>
                                     <Link to="/register" className="w-full" onClick={() => setMenuOpen(false)}>
-                                        <Button className="w-full bg-green-800 text-white font-bold">Cadastrar</Button>
+                                        <span className="block rounded-full bg-green-800 px-4 py-2 text-center font-bold text-white">Cadastrar</span>
                                     </Link>
                                 </div>
                             )}

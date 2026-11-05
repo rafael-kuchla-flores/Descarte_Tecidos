@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import Header from '../../../components/header/Header'
+import Header from '../../../components/Header/Header'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { FiEye, FiEyeOff } from 'react-icons/fi'
 import plantalogin from '../../../assets/icons/plantalogin.png'

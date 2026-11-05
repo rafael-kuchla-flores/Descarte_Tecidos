@@ -16,10 +16,9 @@ import {
   RiLeafLine,
 } from 'react-icons/ri'
 
-import Header from '../../../components/header/Header'
+import Header from '../../../components/Header/Header'
 import collectionPointService from '../../../services/collectionPointService'
-
-const FAVORITES_STORAGE_KEY = 'ecotecido:favoriteCollectionPoints'
+import { useFavorites, COLLECTION_POINT_FAVORITES_KEY } from '../../../hooks/useFavorites'
 
 const ICONS = {
   building: RiBuildingLine,
@@ -81,18 +80,6 @@ const getStatusInfo = (status) => {
   }
 }
 
-// Reads locally saved favorite IDs.
-const readFavorites = () => {
-  const storedValue = localStorage.getItem(FAVORITES_STORAGE_KEY)
-  const parsedValue = JSON.parse(storedValue || '[]')
-
-  if (!Array.isArray(parsedValue)) {
-    throw new Error('Invalid favorites data')
-  }
-
-  return parsedValue.map(String)
-}
-
 const CollectionPointDetail = () => {
   const { id } = useParams()
 
@@ -101,23 +88,8 @@ const CollectionPointDetail = () => {
   const [error, setError] = useState('')
   const [retryKey, setRetryKey] = useState(0)
 
-  const [isFavorite, setIsFavorite] = useState(false)
-  const [favoriteError, setFavoriteError] = useState('')
-
-  // Loads the favorite state when the collection point changes.
-  useEffect(() => {
-    try {
-      const favorites = readFavorites()
-
-      setIsFavorite(favorites.includes(String(id)))
-      setFavoriteError('')
-    } catch {
-      setIsFavorite(false)
-      setFavoriteError(
-        'Não foi possível consultar os favoritos salvos.'
-      )
-    }
-  }, [id])
+  const { isFavorite: checkFavorite, toggleFavorite, favoriteError } = useFavorites(COLLECTION_POINT_FAVORITES_KEY)
+  const isFavorite = checkFavorite(id)
 
   // Loads collection point details from the API.
   useEffect(() => {
@@ -162,30 +134,8 @@ const CollectionPointDetail = () => {
     }
   }, [id, retryKey])
 
-  // Saves or removes a favorite in localStorage.
   const handleFavorite = () => {
-    try {
-      const favorites = readFavorites()
-      const pointId = String(id)
-
-      const alreadyFavorite = favorites.includes(pointId)
-
-      const updatedFavorites = alreadyFavorite
-        ? favorites.filter((favoriteId) => favoriteId !== pointId)
-        : [...favorites, pointId]
-
-      localStorage.setItem(
-        FAVORITES_STORAGE_KEY,
-        JSON.stringify(updatedFavorites)
-      )
-
-      setIsFavorite(!alreadyFavorite)
-      setFavoriteError('')
-    } catch {
-      setFavoriteError(
-        'Não foi possível salvar o favorito neste navegador.'
-      )
-    }
+    toggleFavorite(id)
   }
 
   const handleRetry = () => {

@@ -6,7 +6,7 @@ import {
   RiMap2Line,
 } from 'react-icons/ri'
 
-import Header from '../../../components/header/Header'
+import Header from '../../../components/Header/Header'
 import CollectionPointCard from '../../../components/CollectionPointCard/CollectionPointCard'
 import collectionPointService from '../../../services/collectionPointService'
 
@@ -672,7 +672,7 @@ export default function CollectionPoints() {
                     </div>
 
                     <span className="text-xs text-gray-500 font-medium">
-                      Clique em um card para focar
+                      Selecione um ponto para focar
                     </span>
                   </div>
 

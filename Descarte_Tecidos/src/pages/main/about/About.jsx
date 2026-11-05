@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import { Shirt, MapPin, Package, Sprout, Leaf, TriangleAlert, Check, X } from 'lucide-react';
-import Header from '../../../components/header/Header';
-import Footer from '../../../components/footer/Footer';
+import Header from '../../../components/Header/Header';
+import Footer from '../../../components/Footer/Footer';
 
 const etapas = [
   { numero: 1, Icone: Shirt, titulo: 'Separe os tecidos', descricao: 'Selecione roupas e tecidos que você não usa mais.' },

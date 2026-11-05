@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useFavorites, COLLECTION_POINT_FAVORITES_KEY } from '../../hooks/useFavorites'
 import { Link } from 'react-router-dom'
 import {
     RiHeartLine,
@@ -20,20 +20,23 @@ const ICONS = {
 }
 
 function CollectionPointCard({ point, isSelected = false, onSelect }) {
-    const [isFavorite, setIsFavorite] = useState(false)
+    const { isFavorite, toggleFavorite, favoriteError } = useFavorites(COLLECTION_POINT_FAVORITES_KEY)
+    const saved = isFavorite(point.id)
+    const status = String(point.status || '').toUpperCase()
+    const isAvailable = status === 'ATIVO' || status === 'ACTIVE'
+    const isPending = status === 'PENDENTE' || status === 'PENDING'
     const Icon = ICONS[point.iconType] || RiBuildingLine
 
     const handleFavoriteClick = (e) => {
         e.stopPropagation() // Impede de selecionar o card ao apenas favoritar
-        setIsFavorite(!isFavorite)
+        toggleFavorite(point.id)
     }
 
     return (
         <div
-            onClick={() => onSelect && onSelect(point)}
-            className={`rounded-xl p-5 transition-all duration-200 cursor-pointer border ${isSelected
-                    ? 'bg-emerald-50/30 border-[#153D2C] ring-2 ring-[#153D2C]/20 shadow-md'
-                    : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
+            className={`rounded-xl border p-5 transition-all duration-200 ${isSelected
+                    ? 'border-[#153D2C] bg-emerald-50/30 shadow-md ring-2 ring-[#153D2C]/20'
+                    : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
                 }`}
         >
             {/* Linha do topo: ícone + nome + badge de selecionado + coração */}
@@ -50,26 +53,32 @@ function CollectionPointCard({ point, isSelected = false, onSelect }) {
                     </div>
                 </div>
 
-                <span className={`shrink-0 inline-flex items-center rounded-full px-2 py-1 text-[10px] font-bold uppercase ${point.status === 'PAUSADO'
-                    ? 'bg-amber-50 text-amber-700'
-                    : 'bg-emerald-50 text-emerald-700'
+                <span className={`shrink-0 inline-flex items-center rounded-full px-2 py-1 text-[10px] font-bold uppercase ${isAvailable
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : isPending
+                      ? 'bg-gray-100 text-gray-700'
+                      : 'bg-amber-50 text-amber-700'
                     }`}>
-                    {point.status === 'PAUSADO' ? 'Indisponível' : 'Recebendo'}
+                    {isAvailable ? 'Recebendo' : isPending ? 'Pendente' : 'Indisponível'}
                 </span>
 
                 <button
                     type="button"
                     onClick={handleFavoriteClick}
                     className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                    title={isFavorite ? 'Remover dos favoritos' : 'Favoritar'}
+                    title={saved ? 'Remover dos favoritos' : 'Favoritar'}
+                    aria-label={saved ? `Remover ${point.name} dos favoritos` : `Favoritar ${point.name}`}
+                    aria-pressed={saved}
                 >
-                    {isFavorite ? (
+                    {saved ? (
                         <RiHeartFill className="text-xl text-red-500" />
                     ) : (
                         <RiHeartLine className="text-xl" />
                     )}
                 </button>
             </div>
+
+            {favoriteError && <p role="alert" className="mt-2 text-xs text-red-700">{favoriteError}</p>}
 
             {/* Endereço */}
             <div className="mt-3">
@@ -84,15 +93,18 @@ function CollectionPointCard({ point, isSelected = false, onSelect }) {
 
             {/* Rodapé do Card: Ação de ver no mapa + Link de detalhes */}
             <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-                <span className={`inline-flex items-center gap-1 text-xs font-medium ${isSelected ? 'text-[#153D2C] font-semibold' : 'text-gray-500'
-                    }`}>
-                    <RiMapPinLine className={isSelected ? 'text-[#153D2C]' : 'text-gray-400'} />
-                    {isSelected ? 'Destacado no mapa' : 'Clique para ver no mapa'}
-                </span>
+                <button
+                    type="button"
+                    onClick={() => onSelect?.(point)}
+                    aria-pressed={isSelected}
+                    className={`inline-flex min-h-10 items-center gap-1 rounded px-2 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#153D2C] ${isSelected ? 'text-[#153D2C]' : 'text-gray-600 hover:text-[#153D2C]'}`}
+                >
+                    <RiMapPinLine aria-hidden="true" />
+                    {isSelected ? 'Destacado no mapa' : 'Destacar no mapa'}
+                </button>
 
                 <Link
                     to={`/pontos-de-coleta/${point.id}`}
-                    onClick={(e) => e.stopPropagation()} // Impede o clique de ser absorvido pelo card
                     className="text-green-800 font-semibold text-xs inline-flex items-center gap-1 hover:underline"
                 >
                     Ver detalhes <RiArrowRightLine />

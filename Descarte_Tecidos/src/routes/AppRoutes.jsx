@@ -14,8 +14,8 @@ import Register from "../pages/auth/register/Register.jsx";
 import PasswordReset from "../pages/auth/password-reset/PasswordReset.jsx";
 import NewPassword from "../pages/auth/password-reset/NewPassword.jsx";
 import Profile from "../pages/profile/Profile.jsx";
-import DisposalRegistration from "../pages/main/disposal/DisposalRegistration.jsx";
 import Wallet from "../pages/wallet/Wallet.jsx";
+import NotFound from "../pages/not-found/NotFound.jsx";
 
 // Admin
 import DashBoard from "../pages/admin/dashboard/DashBoard.jsx";
@@ -63,10 +63,8 @@ function AppRoutes() {
       {/* Authenticated user routes */}
       <Route element={<ProtectedRoute />}>
         <Route path="/perfil" element={<Profile />} />
-        <Route
-          path="/registrar-descarte"
-          element={<DisposalRegistration />}
-        />
+        {/* Legacy URL redirects to the working disposal form in Wallet. */}
+        <Route path="/registrar-descarte" element={<Navigate to="/carteira" replace />} />
         <Route path="/carteira" element={<Wallet />} />
       </Route>
 
@@ -140,6 +138,8 @@ function AppRoutes() {
           <Route path="descartes" element={<DisposalReview />} />
         </Route>
       </Route>
+
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

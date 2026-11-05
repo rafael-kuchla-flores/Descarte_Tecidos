@@ -1,8 +1,6 @@
-import React from "react";
 import { NavLink } from "react-router-dom";
 import { FaWhatsapp, FaFacebook, FaInstagram } from "react-icons/fa6";
 import {
-  MessageCircle,
   Mail,
   Send,
   Lock,

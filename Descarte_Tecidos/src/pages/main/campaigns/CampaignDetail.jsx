@@ -7,8 +7,8 @@ import {
   RiStore2Line,
   RiLeafLine,
 } from 'react-icons/ri'
-import Header from '../../../components/header/Header'
-import Footer from '../../../components/footer/Footer'
+import Header from '../../../components/Header/Header'
+import Footer from '../../../components/Footer/Footer'
 import campaignService from '../../../services/campaignService'
 
 // Ícones dinâmicos para os pontos de coleta participantes

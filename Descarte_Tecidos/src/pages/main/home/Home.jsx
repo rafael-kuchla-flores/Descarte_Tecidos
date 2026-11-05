@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
-import Header from '../../../components/header/Header'
-import Footer from '../../../components/footer/Footer'
+import Header from '../../../components/Header/Header'
+import Footer from '../../../components/Footer/Footer'
 import { Link } from 'react-router-dom'
-import Button from '../../../components/btns/Button'
 import {
   RiMapPinLine,
   RiRecycleLine,
@@ -93,17 +92,13 @@ const Home = () => {
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <Link to="/pontos-de-coleta">
-                <Button className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-semibold text-[#133e33] hover:bg-gray-100 transition">
-                  <RiMapPinLine className="text-xl" />
-                  <span>Encontrar pontos de coleta</span>
-                </Button>
+              <Link to="/pontos-de-coleta" className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-semibold text-[#133e33] transition hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                <RiMapPinLine className="text-xl" aria-hidden="true" />
+                Encontrar pontos de coleta
               </Link>
 
-              <Link to="/como-funciona">
-                <Button className="inline-flex items-center justify-center rounded-full border-2 border-white px-6 py-3 font-semibold text-white hover:bg-white/10 transition">
-                  <span>Como funciona</span>
-                </Button>
+              <Link to="/como-funciona" className="inline-flex items-center justify-center rounded-full border-2 border-white px-6 py-3 font-semibold text-white transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                Como funciona
               </Link>
             </div>
           </div>
@@ -211,10 +206,8 @@ const Home = () => {
                   {featuredCampaign.description}
                 </p>
 
-                <Link to={`/campanhas/${featuredCampaign.id}`}>
-                  <Button className="inline-flex items-center gap-2 rounded-full bg-[#153D2C] px-6 py-3 font-semibold text-white hover:bg-[#1e543d] transition">
-                    <span>Saiba mais</span>
-                  </Button>
+                <Link to={`/campanhas/${featuredCampaign.id}`} className="inline-flex items-center gap-2 rounded-full bg-[#153D2C] px-6 py-3 font-semibold text-white transition hover:bg-[#1e543d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#153D2C]">
+                  Saiba mais
                 </Link>
               </div>
             </div>

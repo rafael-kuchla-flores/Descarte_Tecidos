@@ -1,4 +1,3 @@
-import React from 'react'
 import { NavLink } from 'react-router-dom'
 import { FaLongArrowAltRight } from 'react-icons/fa'
 import defaultCard from '../../assets/images/image.png'

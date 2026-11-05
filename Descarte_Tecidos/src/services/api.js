@@ -46,21 +46,6 @@ const api = async (endpoint, options = {}) => {
   const isJson = contentType.includes('application/json')
   const data = isJson ? await response.json().catch(() => null) : await response.text().catch(() => null)
   if (!response.ok) {
-  console.log('STATUS:', response.status)
-  console.log('RESPOSTA DO BACKEND:', data)
-
-  const message = data?.message || data?.error || 'Ocorreu um erro na requisição.'
-
-  const error = new Error(message)
-
-  error.status = response.status
-  error.data = data
-  error.response = response
-
-  throw error
-}
-
-  if (!response.ok) {
     const message = data?.message || data?.error || 'Ocorreu um erro na requisição.'
     const error = new Error(message)
 

@@ -15,7 +15,7 @@ vi.mock('../../../components/Header/Header', () => ({
   default: () => <div>Header</div>,
 }))
 
-vi.mock('../../../components/footer/Footer', () => ({
+vi.mock('../../../components/Footer/Footer', () => ({
   default: () => <div>Footer</div>,
 }))
 
