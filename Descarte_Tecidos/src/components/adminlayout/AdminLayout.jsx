@@ -1,14 +1,15 @@
-import React, { useState } from 'react'
-import { NavLink, useNavigate, Outlet } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, Link, useNavigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth' 
-import { 
+import UserAvatar from '../useravatar/UserAvatar'
+import {
   RiRecycleFill, 
   RiHome4Line, 
   RiUser3Line, 
   RiMapPinLine, 
+  RiShirtLine,
   RiMegaphoneLine, 
   RiFileTextLine, 
-  RiSettings4Line, 
   RiLogoutBoxLine,
   RiArrowDownSLine,
   RiMenuLine,
@@ -24,8 +25,6 @@ const AdminLayout = () => {
     if (logout) logout()
     navigate('/')
   }
-
-  const avatarLetter = user?.name ? user.name.charAt(0).toUpperCase() : 'A'
 
    const navLinkClass = ({ isActive }) =>
     `flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition-colors ${
@@ -53,7 +52,7 @@ const AdminLayout = () => {
           <div className="flex items-center gap-3">
             <RiRecycleFill className="h-8 w-8 text-white" />
             <h1 className="text-[17px] font-bold leading-tight">
-              Tecidos <span className="block font-normal">Conscientes</span>
+              Ecotecido
             </h1>
           </div>
           <button 
@@ -75,14 +74,20 @@ const AdminLayout = () => {
           <NavLink to="/admin/collect-points" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
             <RiMapPinLine className="text-lg" /> Pontos de coleta
           </NavLink>
+          <NavLink to="/admin/cloth-types" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
+            <RiShirtLine className="text-lg" /> Tipos de tecido
+          </NavLink>
+          <NavLink to="/admin/cashback-rules" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
+            <RiRecycleFill className="text-lg" /> Regras de cashback
+          </NavLink>
           <NavLink to="/admin/campaigns" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
             <RiMegaphoneLine className="text-lg" /> Campanhas
           </NavLink>
           <NavLink to="/admin/content" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
             <RiFileTextLine className="text-lg" /> Conteúdos
           </NavLink>
-          <NavLink to="/admin/settings" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
-            <RiSettings4Line className="text-lg" /> Configurações
+          <NavLink to="/perfil" onClick={() => setIsMobileMenuOpen(false)} className={navLinkClass}>
+            <RiUser3Line className="text-lg" /> Meu Perfil
           </NavLink>
         </nav>
 
@@ -106,14 +111,14 @@ const AdminLayout = () => {
             <h2 className="text-xl sm:text-2xl font-bold text-[#111827]">Painel Admin</h2>
           </div>
           
-          <div className="flex items-center gap-2 cursor-pointer">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#123C2C] text-sm font-bold text-white shadow-sm overflow-hidden">
-              {avatarLetter}
-            </div>
+          <Link to="/perfil" aria-label="Abrir meu perfil" className="flex items-center gap-2">
+            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[#123C2C] text-sm font-bold text-white shadow-sm">
+              <UserAvatar />
+            </span>
             <span className="hidden sm:flex text-sm font-semibold text-gray-700 items-center">
               Olá, {user?.name || 'Admin'} <RiArrowDownSLine className="ml-1 text-gray-500" />
             </span>
-          </div>
+          </Link>
         </header>
 
         <div className="px-4 sm:px-8 pb-8">

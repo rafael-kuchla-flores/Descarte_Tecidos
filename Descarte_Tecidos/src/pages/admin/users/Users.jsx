@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   RiSearchLine,
   RiUserAddLine,
@@ -8,30 +8,43 @@ import {
   RiCloseLine
 } from 'react-icons/ri'
 import userService from '../../../services/userService'
+import pointsService from '../../../services/pointsService'
+
+const roleOptions = [
+  { value: 'DOADOR', label: 'Doador' },
+  { value: 'ADMIN', label: 'Administrador' },
+  { value: 'PONTO_COLETA_GERENTE', label: 'Gerente de ponto' },
+  { value: 'PONTO_COLETA_OPERADOR', label: 'Operador de ponto' },
+]
+
+const emptyFormData = () => ({
+  name: '',
+  email: '',
+  cpf: '',
+  phone: '',
+  roles: ['DOADOR'],
+  pointId: '',
+})
+
+const getUserRoles = (user) => user.roles || (user.role ? [user.role] : [])
 
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('Todos os tipos')
   const [usersList, setUsersList] = useState([])
+  const [pointsList, setPointsList] = useState([])
+  const [pointsError, setPointsError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    cpf: '',
-    phone: '',
-    password: '',
-    role: 'DOADOR'
-  })
+  const [formData, setFormData] = useState(emptyFormData)
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const fetchUsers = async () => {
     try {
-      setLoading(true)
       const data = await userService.getUsers()
       const list = Array.isArray(data) ? data : data?.content || []
       setUsersList(list)
@@ -43,8 +56,18 @@ const Users = () => {
     }
   }
 
+  const fetchPoints = async () => {
+    try {
+      const data = await pointsService.getPontos()
+      setPointsList(Array.isArray(data) ? data : data?.content || [])
+    } catch (err) {
+      setPointsError(err.data?.message || 'Não foi possível carregar os pontos de coleta.')
+    }
+  }
+
   useEffect(() => {
     fetchUsers()
+    fetchPoints()
   }, [])
 
 
@@ -56,8 +79,8 @@ const Users = () => {
       email: user.email,
       cpf: user.document,
       phone: user.phone || '',
-      password: '',
-      role: user.roles && user.roles.includes('ADMIN') ? 'ADMIN' : 'DOADOR'
+      roles: getUserRoles(user).length > 0 ? getUserRoles(user) : ['DOADOR'],
+      pointId: user.pointId ?? '',
     })
     setIsModalOpen(true)
   }
@@ -67,23 +90,29 @@ const Users = () => {
     e.preventDefault()
     setFormError('')
 
-    let formattedPhone = formData.phone;
-    if (formattedPhone && !formattedPhone.startsWith('+')) {
-      formattedPhone = `+55${formattedPhone}`;
+    if (formData.roles.length === 0) {
+      setFormError('Selecione ao menos um perfil para o usuário.')
+      return
     }
+
+    const isManager = formData.roles.includes('PONTO_COLETA_GERENTE')
+    if (isManager && !formData.pointId) {
+      setFormError('Selecione o ponto de coleta vinculado a este gerente.')
+      return
+    }
+
+    const phoneDigits = formData.phone.replace(/\D/g, '')
+    const formattedPhone = formData.phone.startsWith('+') ? `+${phoneDigits}` : `+55${phoneDigits}`
 
     const dataToSend = {
       name: formData.name,
       email: formData.email,
       phone: formattedPhone,
       document: formData.cpf,
-      roles: [formData.role]
+      roles: formData.roles,
+      role: isManager ? 'PONTO_COLETA_GERENTE' : formData.roles[0],
+      pointId: isManager ? Number(formData.pointId) : null,
     };
-
-
-    if (!editingId) {
-      dataToSend.password = formData.password;
-    }
 
     try {
       setSubmitting(true)
@@ -91,12 +120,19 @@ const Users = () => {
       if (editingId) {
         await userService.updateUser(editingId, dataToSend)
       } else {
-        await userService.createUser(dataToSend)
+        const createdUser = await userService.createUser(dataToSend)
+        const createdUserId = createdUser?.id ?? createdUser?.user?.id
+        if (isManager) {
+          if (!createdUserId) {
+            throw new Error('O usuário foi criado, mas a API não retornou o ID para confirmar o vínculo com o ponto.')
+          }
+          await userService.updateUser(createdUserId, dataToSend)
+        }
       }
 
       setIsModalOpen(false)
       setEditingId(null)
-      setFormData({ name: '', email: '', cpf: '', phone: '', password: '', role: 'DOADOR' })
+      setFormData(emptyFormData())
       fetchUsers()
     } catch (err) {
       console.error(err)
@@ -104,7 +140,7 @@ const Users = () => {
         const errorMessages = err.data.fieldErrors.map(e => `${e.field}: ${e.message}`).join(' | ')
         setFormError(`Opa! Corrija isso: ${errorMessages}`)
       } else {
-        setFormError(err.data?.message || 'Erro ao salvar usuário. Verifique os campos.')
+        setFormError(err.data?.message || err.message || 'Erro ao salvar usuário. Verifique os campos.')
       }
     } finally {
       setSubmitting(false)
@@ -130,10 +166,7 @@ const Users = () => {
       (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
 
 
-    const userRole = (user.roles || []).join(',').toUpperCase()
-
-    if (roleFilter === 'Doador') return matchesSearch && userRole.includes('DOADOR')
-    if (roleFilter === 'Administrador') return matchesSearch && userRole.includes('ADMIN')
+    if (roleFilter !== 'Todos os tipos') return matchesSearch && getUserRoles(user).includes(roleFilter)
 
     return matchesSearch
   })
@@ -143,7 +176,7 @@ const Users = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Usuários</h1>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => { setEditingId(null); setFormData(emptyFormData()); setFormError(''); setIsModalOpen(true) }}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#123C2C] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#1a5640] transition-colors w-full sm:w-auto cursor-pointer"
         >
           <RiUserAddLine className="text-lg" />
@@ -179,8 +212,7 @@ const Users = () => {
               className="w-full appearance-none rounded-xl border border-gray-200 bg-white py-2.5 pl-4 pr-10 text-sm text-gray-800 focus:border-[#123C2C] focus:outline-none transition-colors cursor-pointer"
             >
               <option value="Todos os tipos">Todos os tipos</option>
-              <option value="Doador">Doador</option>
-              <option value="Administrador">Administrador</option>
+              {roleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
             </select>
             <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
               <RiArrowDownSLine className="text-lg" />
@@ -214,7 +246,7 @@ const Users = () => {
                     <td className="py-4 px-6 font-medium text-gray-900">{user.name}</td>
                     <td className="py-4 px-6 text-gray-500">{user.email}</td>
                     <td className="py-4 px-6 text-gray-600">
-                      {user.roles && user.roles.includes('ADMIN') ? 'Administrador' : 'Doador'}
+                      {getUserRoles(user).map((role) => roleOptions.find((option) => option.value === role)?.label || role).join(', ') || 'Sem perfil'}
                     </td>
                     <td className="py-4 px-6">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${user.active !== false ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
@@ -225,7 +257,6 @@ const Users = () => {
 
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2">
-
                         <button
                           onClick={() => handleEditClick(user)}
                           className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
@@ -233,12 +264,6 @@ const Users = () => {
                         >
                           <RiPencilLine className="text-lg" />
                         </button>
-                      </div>
-                    </td>
-
-
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleDelete(user.id)}
                           className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
@@ -317,9 +342,10 @@ const Users = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Telefone</label>
+                  <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Telefone *</label>
                   <input
                     type="text"
+                    required
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="(00) 00000-0000"
@@ -328,31 +354,46 @@ const Users = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Senha Inicial *</label>
-                  <input
-                    type="password"
-                    required={!editingId}
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="Mínimo de caracteres"
-                    className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 focus:border-[#123C2C] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Papel (Role) *</label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-[#123C2C] focus:outline-none cursor-pointer"
-                  >
-                    <option value="DOADOR">Doador (DOADOR)</option>
-                    <option value="ADMIN">Administrador (ADMIN)</option>
-                  </select>
+              <div>
+                <span className="mb-2 block text-xs font-semibold text-gray-600 uppercase">Perfis de acesso *</span>
+                <div className="grid grid-cols-2 gap-3">
+                  {roleOptions.map((role) => (
+                    <label key={role.value} className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={formData.roles.includes(role.value)}
+                        onChange={(event) => setFormData((current) => ({
+                          ...current,
+                          roles: event.target.checked
+                            ? [...current.roles, role.value]
+                            : current.roles.filter((value) => value !== role.value),
+                        }))}
+                      />
+                      {role.label}
+                    </label>
+                  ))}
                 </div>
               </div>
+
+              {formData.roles.includes('PONTO_COLETA_GERENTE') && (
+                <div>
+                  <label htmlFor="manager-point" className="mb-1 block text-xs font-semibold text-gray-600 uppercase">Ponto de coleta *</label>
+                  <select
+                    id="manager-point"
+                    required
+                    value={formData.pointId}
+                    onChange={(event) => setFormData({ ...formData, pointId: event.target.value })}
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-[#123C2C] focus:outline-none"
+                  >
+                    <option value="" disabled>Selecione um ponto de coleta</option>
+                    {pointsList.map((point) => (
+                      <option key={point.id} value={point.id}>{point.name || point.nome || `Ponto ${point.id}`}</option>
+                    ))}
+                  </select>
+                  {pointsError && <p role="alert" className="mt-2 text-xs text-red-700">{pointsError}</p>}
+                  {!pointsError && pointsList.length === 0 && <p className="mt-2 text-xs text-gray-500">Nenhum ponto de coleta disponível.</p>}
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 mt-6">
                 <button

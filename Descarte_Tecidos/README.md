@@ -1,16 +1,57 @@
-# React + Vite
+# Ecotecido
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicação React/Vite com uma API Express local para autenticação, pontos de coleta e gerenciamento de conteúdo.
 
-Currently, two official plugins are available:
+## Executar localmente
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Instale as dependências e inicie o servidor e o front-end:
 
-## React Compiler
+```sh
+npm install
+npm run dev:all
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+O front-end fica disponível no endereço exibido pelo Vite e a API em `http://localhost:4000/api/v1`. A API usa `server/database.json` para persistir os dados do ambiente local. É possível configurar `PORT`, `DATA_FILE` e `JWT_SECRET` por variáveis de ambiente. O front-end aceita `VITE_API_URL` para apontar a API a outro endereço.
 
-## Expanding the ESLint configuration
+No desenvolvimento, `.env.development` define a API usada pelo front-end. Atualmente, esse arquivo aponta para `http://163.176.41.61:8080/api/v1`. O comando `npm run dev:all` também inicia a API Express local em `http://localhost:4000/api/v1`; para usar essa API, configure `VITE_API_URL` para esse endereço antes de iniciar o Vite. Em outros ambientes, configure `VITE_API_URL` com o endereço da API correspondente.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Para acessar a administração de conteúdo no ambiente inicial:
+
+- E-mail: `admin@ecotecido.com`
+- Senha: `admin123`
+
+## Conteúdos
+
+Com autenticação, usuários podem consultar categorias e posts publicados. Administradores podem criar, atualizar e excluir posts logicamente, além de criar, renomear e excluir categorias.
+
+Endpoints locais implementados:
+
+- `GET /api/v1/categories` e `GET /api/v1/categories/{id}`
+- `GET /api/v1/posts` e `GET /api/v1/posts/{id}`
+- `GET /api/v1/admin/categories`, `POST /api/v1/admin/categories`, `GET /api/v1/admin/categories/{id}`, `PUT /api/v1/admin/categories/{id}` e `DELETE /api/v1/admin/categories/{id}`
+- `GET /api/v1/admin/posts`, `POST /api/v1/admin/posts`, `GET /api/v1/admin/posts/{id}`, `PATCH /api/v1/admin/posts/{id}` e `DELETE /api/v1/admin/posts/{id}`
+
+As listagens aceitam paginação (`page`, `size`) e ordenação (`sort`). Posts aceitam filtros por categoria, termo de busca e tags. A exclusão de um post mantém o registro para consulta administrativa e armazena a justificativa, a data e o nome de quem excluiu.
+
+## Pontos de coleta
+
+Administradores podem consultar a fila de propostas de edição na tela de pontos de coleta, comparar os dados propostos e aprovar ou rejeitar cada solicitação. Gerentes enviam alterações como propostas; elas só são aplicadas após aprovação administrativa. A tela também permite consultar gerentes e operadores associados a cada ponto e associar como operador um usuário já cadastrado pelo documento.
+
+Endpoints locais para estes fluxos:
+
+- `GET /api/v1/admin/collection-points/pending-updates`
+- `POST /api/v1/admin/collection-points/{id}/approve-update` e `POST /api/v1/admin/collection-points/{id}/reject-update`
+- `GET /api/v1/admin/collection-points/{id}/users`
+- `PATCH /api/v1/admin/collection-points/{id}/users/operators` com `{ "document": "..." }`
+
+## Descartes e cashback
+
+Doadores podem registrar descartes em pontos ativos e consultar seus descartes e transações na página **Cashback e carteira**. Gerentes e operadores do ponto confirmam ou rejeitam descartes pendentes; a confirmação credita cashback à carteira. Administradores configuram a taxa de pontos por kg em **Regras de cashback**. A taxa inicial local é 1 ponto/kg e pode ser alterada pelo administrador. O limite diário de cashback ainda não é aplicado.
+
+Endpoints locais:
+
+- `POST /api/v1/disposals`, `GET /api/v1/disposals/my-disposals`
+- `GET /api/v1/disposals/collection-point/{collectionPointId}` e `/pending`
+- `PATCH /api/v1/disposals/{id}/confirm` e `/reject`
+- `GET /api/v1/cashback/balance`, `GET /api/v1/cashback/history` e `POST /api/v1/cashback/redeem`
+- `GET /api/v1/admin/cashback-rules/current` e `PUT /api/v1/admin/cashback-rules/points-per-kg`

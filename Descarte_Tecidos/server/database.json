@@ -1,0 +1,323 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Administrador",
+      "email": "admin@ecotecido.com",
+      "password": "admin123",
+      "role": "ADMIN",
+      "status": "ACTIVE",
+      "document": "000.000.000-00",
+      "phone": "(11) 99999-0001",
+      "pointId": null
+    },
+    {
+      "id": 2,
+      "name": "Gerente do Ponto",
+      "email": "gerente@ecotecido.com",
+      "password": "gerente123",
+      "role": "PONTO_COLETA_GERENTE",
+      "status": "ACTIVE",
+      "document": "111.111.111-11",
+      "phone": "(11) 99999-0002",
+      "pointId": 1
+    },
+    {
+      "id": 3,
+      "name": "Operador do Ponto",
+      "email": "operador@ecotecido.com",
+      "password": "operador123",
+      "role": "PONTO_COLETA_OPERADOR",
+      "status": "ACTIVE",
+      "document": "222.222.222-22",
+      "phone": "(11) 99999-0003",
+      "pointId": 1
+    },
+    {
+      "id": 4,
+      "name": "Usu�rio Comum",
+      "email": "usuario@ecotecido.com",
+      "password": "usuario123",
+      "role": "USER",
+      "status": "ACTIVE",
+      "document": "333.333.333-33",
+      "phone": "(11) 99999-0004",
+      "pointId": null
+    }
+  ],
+  "clothTypes": [
+    {
+      "id": 1,
+      "name": "Algod�o",
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "Jeans",
+      "active": true
+    },
+    {
+      "id": 3,
+      "name": "Poli�ster",
+      "active": true
+    },
+    {
+      "id": 4,
+      "name": "L�",
+      "active": true
+    },
+    {
+      "id": 5,
+      "name": "Malha",
+      "active": true
+    }
+  ],
+  "collectionPoints": [
+    {
+      "id": 1,
+      "name": "Ponto de Coleta Centro",
+      "city": "S�o Paulo",
+      "status": "ACTIVE",
+      "phone": "(11) 3333-0101",
+      "description": "Coleta de roupas, retalhos e tecidos em bom estado.",
+      "pointPictureUrl": "",
+      "latitude": -23.5489,
+      "longitude": -46.6388,
+      "address": {
+        "street": "Rua das Flores",
+        "number": "123",
+        "neighborhood": "Centro",
+        "city": "S�o Paulo",
+        "state": "SP"
+      },
+      "acceptedClothTypes": [
+        "Algod�o",
+        "Jeans",
+        "Poli�ster"
+      ],
+      "operatingHours": [
+        {
+          "dayOfWeek": "Segunda",
+          "openingTime": "08:00",
+          "closingTime": "18:00"
+        },
+        {
+          "dayOfWeek": "Ter�a",
+          "openingTime": "08:00",
+          "closingTime": "18:00"
+        },
+        {
+          "dayOfWeek": "Quarta",
+          "openingTime": "08:00",
+          "closingTime": "18:00"
+        }
+      ],
+      "managerId": 2,
+      "operatorIds": [
+        3
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Eco Moda Vila Mariana",
+      "city": "S�o Paulo",
+      "status": "ACTIVE",
+      "phone": "(11) 3333-0102",
+      "description": "Recebemos roupas de inverno e tecidos usados em boa condi��o.",
+      "pointPictureUrl": "",
+      "latitude": -23.5948,
+      "longitude": -46.6529,
+      "address": {
+        "street": "Avenida Paulista",
+        "number": "1500",
+        "neighborhood": "Bela Vista",
+        "city": "S�o Paulo",
+        "state": "SP"
+      },
+      "acceptedClothTypes": [
+        "L�",
+        "Malha",
+        "Algod�o"
+      ],
+      "operatingHours": [
+        {
+          "dayOfWeek": "Segunda",
+          "openingTime": "09:00",
+          "closingTime": "17:00"
+        },
+        {
+          "dayOfWeek": "Quinta",
+          "openingTime": "09:00",
+          "closingTime": "17:00"
+        },
+        {
+          "dayOfWeek": "S�bado",
+          "openingTime": "09:00",
+          "closingTime": "14:00"
+        }
+      ],
+      "managerId": null,
+      "operatorIds": []
+    },
+    {
+      "id": 3,
+      "name": "Recicla Tecido Pinheiros",
+      "city": "S�o Paulo",
+      "status": "PENDING",
+      "phone": "(11) 3333-0103",
+      "description": "Recebimento de todo tipo de tecido com foco em reciclagem.",
+      "pointPictureUrl": "",
+      "latitude": -23.5614,
+      "longitude": -46.6972,
+      "address": {
+        "street": "Rua do Orvalho",
+        "number": "45",
+        "neighborhood": "Pinheiros",
+        "city": "S�o Paulo",
+        "state": "SP"
+      },
+      "acceptedClothTypes": [
+        "Poli�ster",
+        "Jeans",
+        "L�"
+      ],
+      "operatingHours": [
+        {
+          "dayOfWeek": "Segunda",
+          "openingTime": "10:00",
+          "closingTime": "19:00"
+        },
+        {
+          "dayOfWeek": "Quarta",
+          "openingTime": "10:00",
+          "closingTime": "19:00"
+        }
+      ],
+      "managerId": null,
+      "operatorIds": []
+    }
+  ],
+  "campaigns": [
+    {
+      "id": 1,
+      "title": "Campanha do Agasalho 2026",
+      "startDate": "01/06/2026",
+      "endDate": "30/08/2026",
+      "status": "Ativa",
+      "description": "Doe roupas e aque�a o inverno de quem mais precisa. Pontos de coleta em toda a regi�o.",
+      "image": "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=1200&q=80",
+      "steps": [
+        {
+          "number": 1,
+          "title": "Separe as roupas",
+          "description": "Selecione roupas de inverno em bom estado."
+        },
+        {
+          "number": 2,
+          "title": "Encontre um ponto",
+          "description": "Veja os pontos de coleta participantes abaixo."
+        },
+        {
+          "number": 3,
+          "title": "Fa�a a doa��o",
+          "description": "Leve suas roupas ao ponto de coleta escolhido."
+        }
+      ],
+      "pointIds": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Doe e Recicle",
+      "startDate": "15/03/2026",
+      "endDate": "15/06/2026",
+      "status": "Ativa",
+      "description": "Contribua com tecidos e res�duos t�xteis para reciclagem e fortalecimento da economia circular.",
+      "image": "https://images.unsplash.com/photo-1605289982774-9a6fef564df8?auto=format&fit=crop&w=1200&q=80",
+      "steps": [
+        {
+          "number": 1,
+          "title": "Separe os tecidos",
+          "description": "Junte retalhos, sobras e roupas desgastadas."
+        },
+        {
+          "number": 2,
+          "title": "Consulte os centros",
+          "description": "Localize os postos com foco em reciclagem t�xtil."
+        },
+        {
+          "number": 3,
+          "title": "Destine corretamente",
+          "description": "Entregue o material para ser reaproveitado."
+        }
+      ],
+      "pointIds": [
+        2,
+        3
+      ]
+    }
+  ],
+  "contents": [
+    {
+      "id": 1,
+      "titulo": "O impacto da ind�stria t�xtil no meio ambiente",
+      "categoria": "Sustentabilidade",
+      "tags": [
+        "sustentabilidade",
+        "meio ambiente"
+      ],
+      "conteudo": "A ind�stria t�xtil gera grande volume de res�duos e consumo intensivo de �gua e energia.",
+      "imagem": "",
+      "status": "Publicado",
+      "data": "16/05/2026"
+    },
+    {
+      "id": 2,
+      "titulo": "5 dicas para reutilizar suas roupas",
+      "categoria": "Dicas",
+      "tags": [
+        "reutiliza��o",
+        "dicas"
+      ],
+      "conteudo": "Dicas pr�ticas para reaproveitar roupas e tecidos sem gerar desperd�cio.",
+      "imagem": "",
+      "status": "Publicado",
+      "data": "10/05/2026"
+    }
+  ],
+  "receipts": [
+    {
+      "id": 1,
+      "pointId": 1,
+      "operatorId": 3,
+      "material": "Algod�o",
+      "quantity": "10 kg",
+      "responsavel": "Operador do Ponto",
+      "createdAt": "2026-09-11T10:00:00.000Z",
+      "notes": "Recebimento regular"
+    },
+    {
+      "id": 2,
+      "pointId": 1,
+      "operatorId": 3,
+      "material": "Jeans",
+      "quantity": "8 kg",
+      "responsavel": "Operador do Ponto",
+      "createdAt": "2026-09-10T09:30:00.000Z",
+      "notes": "Material separado"
+    },
+    {
+      "id": 3,
+      "pointId": 1,
+      "operatorId": 3,
+      "material": "Poli�ster",
+      "quantity": "15 kg",
+      "responsavel": "Operador do Ponto",
+      "createdAt": "2026-09-09T11:15:00.000Z",
+      "notes": "Enviado para reciclagem"
+    }
+  ]
+}

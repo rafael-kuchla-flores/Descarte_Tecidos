@@ -1,75 +1,59 @@
-import React from 'react'
-import Header from '../../../components/header/Header'
+import { useEffect, useState } from 'react'
+import Header from '../../../components/Header/Header'
 import CampaignCard from '../../../components/CampaignCard/CampaignCard'
-import Footer from '../../../components/footer/Footer'
+import Footer from '../../../components/Footer/Footer'
+import campaignService from '../../../services/campaignService'
 
 const Campaigns = () => {
+  const [campaigns, setCampaigns] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
 
-  const campaigns = [
-    {
-      id: 1,
-      image: undefined,
-      startDate: '30/08/2026',
-      endDate: '30/09/2026',
-      status: 'Ativa',
-      title: 'Campanha do Agasalho 2026',
-      description:
-        'Participe da nossa campanha de doação de agasalhos e ajude a aquecer o inverno de quem mais precisa.',
-    },
-    {
-      id: 2,
-      image: undefined,
-      startDate: '10/09/2026',
-      endDate: '12/10/2026',
-      status: 'Pausada',
-      title: 'Arrecadação de Alimentos',
-      description: 'Contribua com alimentos não perecíveis para montar cestas básicas destinadas a famílias em situação de vulnerabilidade.',
-    },
-    {
-      id: 3,
-      image: undefined,
-      startDate: '01/10/2026',
-      endDate: '25/12/2026',
-      status: 'Em Breve',
-      title: 'Natal Solidário',
-      description: 'Doe brinquedos novos ou em bom estado e faça a alegria de centenas de crianças neste Natal.',
-    },
-    {
-      id: 3,
-      image: undefined,
-      startDate: '01/10/2026',
-      endDate: '25/12/2026',
-      status: 'Em Breve',
-      title: 'Natal Solidário',
-      description: 'Doe brinquedos novos ou em bom estado e faça a alegria de centenas de crianças neste Natal.',
+  useEffect(() => {
+    let active = true
+
+    const fetchCampaigns = async () => {
+      try {
+        setLoading(true)
+        setError('')
+        const data = await campaignService.getCampaigns()
+        if (active) setCampaigns(Array.isArray(data) ? data : [])
+      } catch (requestError) {
+        if (active) {
+          setCampaigns([])
+          setError(requestError.message || 'Não foi possível carregar as campanhas.')
+        }
+      } finally {
+        if (active) setLoading(false)
+      }
     }
-  ]
+
+    fetchCampaigns()
+    return () => { active = false }
+  }, [reloadKey])
 
   return (
     <>
       <Header />
+      <main className="container mx-auto flex min-h-[65vh] flex-col items-center px-4 py-12 sm:px-6">
+        <h1 className="mb-2 text-center text-3xl font-bold text-green-900 sm:text-4xl">Campanhas</h1>
+        <p className="mb-8 text-center text-gray-700">Participe das nossas campanhas de doação e faça a diferença.</p>
 
-      <main className="container mx-auto px-4 py-12 flex flex-col items-center">
-
-        <h1 className="text-4xl font-bold text-green-900 mb-2">
-          Campanhas
-        </h1>
-
-        <p className="text-lg text-gray-700 mb-8">
-          Participe das nossas campanhas de doação e faça a diferença.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl">
-
-          {campaigns.map((campaign) => (
-            <CampaignCard
-              key={campaign.id}
-              {...campaign}
-            />
-          ))}
-
-        </div>
-
+        {loading ? (
+          <p role="status" className="py-12 text-center text-gray-600">Carregando campanhas...</p>
+        ) : error ? (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-6 py-8 text-center text-red-700">
+            <p>{error}</p>
+            <button type="button" onClick={() => setReloadKey((key) => key + 1)} className="mt-4 rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold hover:bg-red-100">Tentar novamente</button>
+          </div>
+        ) : campaigns.length === 0 ? (
+          <p role="status" className="py-12 text-center text-gray-600">Nenhuma campanha disponível no momento.</p>
+        ) : (
+          <div className="grid w-full max-w-5xl grid-cols-1 gap-8 md:grid-cols-2">
+            {campaigns.map((campaign) => <CampaignCard key={campaign.id} {...campaign} />)}
+          </div>
+        )}
       </main>
       <Footer />
     </>

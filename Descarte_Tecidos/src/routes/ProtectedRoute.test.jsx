@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { vi } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import ProtectedRoute from './ProtectedRoute'
 import { useAuth } from '../hooks/useAuth'
 
@@ -9,7 +9,7 @@ vi.mock('../hooks/useAuth', () => ({
 }))
 
 describe('ProtectedRoute', () => {
-  test('redirects unauthenticated user to home', () => {
+  test('redirects unauthenticated user to login', () => {
     useAuth.mockReturnValue({
       user: null,
       loading: false,
@@ -18,6 +18,7 @@ describe('ProtectedRoute', () => {
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>
+          <Route path="/login" element={<div>Login Page</div>} />
           <Route path="/" element={<div>Home Page</div>} />
           <Route element={<ProtectedRoute adminOnly={true} />}>
             <Route path="/admin" element={<div>Admin Page</div>} />
@@ -26,7 +27,7 @@ describe('ProtectedRoute', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText('Home Page')).toBeInTheDocument()
+    expect(screen.getByText('Login Page')).toBeInTheDocument()
   })
 
   test('redirects non-admin user to access denied page', () => {

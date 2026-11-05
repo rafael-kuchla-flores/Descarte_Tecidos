@@ -32,41 +32,27 @@ const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
 
   const login = async (email, password) => {
-    // Faz login
     const data = await authService.login(email, password)
-
     const newToken = data.token
 
-    // Salva token
     localStorage.setItem('token', newToken)
     setToken(newToken)
 
-    // Lê os dados do JWT
+    const profile = data.user || await authService.getMe(newToken)
     const tokenData = parseJwt(newToken)
-
-    console.log('Dados do token:', tokenData)
-
-    // Backend envia roles como array
-    const role =
-      tokenData?.roles?.[0] ||
-      tokenData?.role ||
-      tokenData?.authorities?.[0] ||
-      null
+    const roles = profile?.roles || tokenData?.roles || (profile?.role || tokenData?.role ? [profile?.role || tokenData?.role] : [])
+    const role = roles[0] || tokenData?.authorities?.[0] || null
 
     const userData = {
-      id: tokenData?.id,
-      name: tokenData?.name,
-      email: tokenData?.sub || email,
-      role: role,
+      id: profile?.id ?? tokenData?.id,
+      name: profile?.name || tokenData?.name,
+      email: profile?.email || tokenData?.sub || email,
+      role,
+      roles,
+      pointId: profile?.pointId ?? tokenData?.pointId ?? null,
     }
 
-    console.log('Usuário autenticado:', userData)
-
-    localStorage.setItem(
-      'user',
-      JSON.stringify(userData)
-    )
-
+    localStorage.setItem('user', JSON.stringify(userData))
     setUser(userData)
 
     return {
@@ -83,6 +69,25 @@ const AuthProvider = ({ children }) => {
     setUser(null)
   }
 
+  const syncUserProfile = (profile, newToken) => {
+    if (newToken) {
+      localStorage.setItem('token', newToken)
+      setToken(newToken)
+    }
+
+    const roles = profile.roles || user?.roles || []
+    const updatedUser = {
+      ...user,
+      ...profile,
+      role: roles[0] || profile.role || user?.role,
+      roles,
+      avatarRevision: Date.now(),
+    }
+
+    localStorage.setItem('user', JSON.stringify(updatedUser))
+    setUser(updatedUser)
+  }
+
   useEffect(() => {
     setLoading(false)
   }, [])
@@ -97,6 +102,7 @@ const AuthProvider = ({ children }) => {
         setUser,
         login,
         logout,
+        syncUserProfile,
         isAuthenticated,
         loading,
       }}

@@ -1,45 +1,123 @@
-const API_URL = 'http://163.176.41.61:8099/api/v1'
+const API_URL = import.meta.env.VITE_API_URL || 'http://163.176.41.61:8080/api/v1'
+
+const buildUrl = (endpoint, params = {}) => {
+  const query = new URLSearchParams()
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => query.append(key, String(item)))
+      return
+    }
+
+    query.append(key, String(value))
+  })
+
+  const search = query.toString()
+  return search ? `${endpoint}?${search}` : endpoint
+}
 
 const api = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token')
+  const params = options.params || {}
+  const requestUrl = `${API_URL}${buildUrl(endpoint, params)}`
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
 
   const headers = {
-    'Content-Type': 'application/json',
+    ...(!isFormData && { 'Content-Type': 'application/json' }),
     ...options.headers,
   }
 
+  const shouldUseAuth = !!token && !endpoint.startsWith('/auth/') && !endpoint.startsWith('/register')
 
-  if (token && !endpoint.startsWith('/auth/')) {
+  if (shouldUseAuth && !headers.Authorization) {
     headers.Authorization = `Bearer ${token}`
   }
 
-  console.log('URL:', `${API_URL}${endpoint}`)
-  console.log('Método:', options.method)
-  console.log('Headers:', headers)
-  console.log('Body:', options.body)
-
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const response = await fetch(requestUrl, {
     ...options,
+    method: options.method || 'GET',
     headers,
+    body: options.body ?? undefined,
   })
 
-  const data = await response.json().catch(() => null)
-
-  console.log('Status:', response.status)
-  console.log('Resposta:', data)
-
+  const contentType = response.headers.get('content-type') || ''
+  const isJson = contentType.includes('application/json')
+  const data = isJson ? await response.json().catch(() => null) : await response.text().catch(() => null)
   if (!response.ok) {
-    const error = new Error(
-      data?.message || 'Ocorreu um erro na requisição.'
-    )
+    const message = data?.message || data?.error || 'Ocorreu um erro na requisição.'
+    const error = new Error(message)
 
     error.status = response.status
     error.data = data
+    error.response = response
 
     throw error
   }
 
+  if (response.status === 204 || data === null || data === '') {
+    return null
+  }
+
   return data
+}
+
+export const apiBlob = async (endpoint, options = {}) => {
+  const token = localStorage.getItem('token')
+  const { params = {}, headers: optionHeaders = {}, ...fetchOptions } = options
+  const requestUrl = `${API_URL}${buildUrl(endpoint, params)}`
+  const headers = {
+    Accept: 'image/*',
+    ...optionHeaders,
+  }
+
+  if (token && !headers.Authorization) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  const response = await fetch(requestUrl, {
+    ...fetchOptions,
+    method: fetchOptions.method || 'GET',
+    headers,
+  })
+
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type') || ''
+    const errorData = contentType.includes('application/json')
+      ? await response.json().catch(() => null)
+      : await response.text().catch(() => '')
+    const message = errorData?.message || errorData?.error || 'Não foi possível carregar a imagem.'
+    const error = new Error(message)
+    error.status = response.status
+    error.data = errorData
+    error.response = response
+    throw error
+  }
+
+  return response.blob()
+}
+
+export const getAllPages = async (endpoint, params = {}) => {
+  const size = params.size || 100
+  const results = []
+  let page = params.page || 0
+  let hasNextPage = true
+
+  while (hasNextPage) {
+    const response = await api(endpoint, {
+      method: 'GET',
+      params: { ...params, page, size },
+    })
+    const content = Array.isArray(response) ? response : response?.content || []
+    results.push(...content)
+    page += 1
+    hasNextPage = response?.page?.totalPages !== undefined
+      ? page < response.page.totalPages
+      : content.length === size
+  }
+
+  return results
 }
 
 export default api

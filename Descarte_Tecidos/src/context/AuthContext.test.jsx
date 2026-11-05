@@ -1,12 +1,13 @@
 import { render, screen, act } from '@testing-library/react'
 import { useContext } from 'react'
-import { vi } from 'vitest'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
 import AuthProvider, { AuthContext } from './AuthContext'
 import authService from '../services/authService'
 
 vi.mock('../services/authService', () => ({
   default: {
     login: vi.fn(),
+    getMe: vi.fn(),
   },
 }))
 
@@ -77,6 +78,12 @@ describe('AuthContext', () => {
     authService.login.mockResolvedValue({
       token,
     })
+    authService.getMe.mockResolvedValue({
+      id: 1,
+      name: 'Admin User',
+      email: 'admin@test.com',
+      role: 'ADMIN',
+    })
 
     render(
       <AuthProvider>
@@ -102,6 +109,8 @@ describe('AuthContext', () => {
       name: 'Admin User',
       email: 'admin@test.com',
       role: 'ADMIN',
+      roles: ['ADMIN'],
+      pointId: null,
     })
 
     expect(screen.getByTestId('authenticated')).toHaveTextContent('yes')
