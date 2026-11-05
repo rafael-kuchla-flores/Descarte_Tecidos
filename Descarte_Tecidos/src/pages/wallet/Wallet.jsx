@@ -136,10 +136,10 @@ const Wallet = () => {
   }
 
   const changeFilter = (value) => {
+    setTransactions([])
+    setTransactionPage(null)
     setTransactionFilter(value)
-    loadData(0, value)
   }
-
   const changePage = (page) => loadData(page)
 
   return (
