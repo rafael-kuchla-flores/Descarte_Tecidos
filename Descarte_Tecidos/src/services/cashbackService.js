@@ -81,8 +81,11 @@ const createDisposal = async (request) =>
   });
 
 // Retrieve available cloth types.
-const getPublicClothTypes = async () =>
-  api('/cloth-types');
+const getPublicClothTypes = async () => {
+  // The backend team must expose this endpoint for authenticated donors.
+  const response = await api('/cloth-types');
+  return Array.isArray(response) ? response : response?.content || [];
+};
 
 // Retrieve pending disposals for a collection point.
 const getPendingDisposals = async (
@@ -115,7 +118,7 @@ const getCurrentRule = async () =>
 const updatePointsPerKg = async (pointsPerKg) =>
   api('/admin/cashback-rules/points-per-kg', {
     method: 'PUT',
-    body: JSON.stringify({ pointsPerKg }),
+    params: { newPointsPerKg: pointsPerKg },
   });
 
 const cashbackService = {

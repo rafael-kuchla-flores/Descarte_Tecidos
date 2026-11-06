@@ -37,6 +37,7 @@ const ContentCard = ({
   description,
   linkTo,
   isFavorite = false,
+  favoriteDisabled = false,
   onToggleFavorite,
 }) => (
   <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -52,6 +53,7 @@ const ContentCard = ({
             type="button"
             onClick={() => onToggleFavorite(id)}
             aria-pressed={isFavorite}
+            disabled={favoriteDisabled}
             aria-label={isFavorite ? `Remover ${title} dos favoritos` : `Favoritar ${title}`}
             title={isFavorite ? 'Remover dos favoritos' : 'Salvar nos favoritos'}
             className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-[#245747] transition-colors hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#245747]"

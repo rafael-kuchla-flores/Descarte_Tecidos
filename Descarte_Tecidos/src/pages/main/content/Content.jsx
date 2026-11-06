@@ -16,7 +16,7 @@ const Content = () => {
   const [feedback, setFeedback] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
   const [searchParams, setSearchParams] = useSearchParams()
-  const { favorites, isFavorite, toggleFavorite, favoriteError } = useFavorites(POST_FAVORITES_KEY)
+  const { favorites, isFavorite, toggleFavorite, favoriteError, loadingFavorites, favoritesReady, savingFavorite, usingAccount } = useFavorites(POST_FAVORITES_KEY)
   const showFavorites = searchParams.get('favoritos') === '1'
 
   useEffect(() => {
@@ -61,8 +61,8 @@ const Content = () => {
     setFeedback('')
   }
 
-  const handleFavorite = (post) => {
-    const nowFavorite = toggleFavorite(post.id)
+  const handleFavorite = async (post) => {
+    const nowFavorite = await toggleFavorite(post.id)
     if (nowFavorite !== null) {
       setFeedback(nowFavorite ? `“${post.title}” salvo nos favoritos.` : `“${post.title}” removido dos favoritos.`)
     } else {
@@ -72,7 +72,9 @@ const Content = () => {
 
   const normalizedTerm = searchTerm.trim().toLocaleLowerCase('pt-BR')
   const filteredPosts = posts.filter((post) => {
+    const selectedCategoryName = categories.find((category) => String(category.id) === selectedCategory)?.name
     const matchesCategory = !selectedCategory || String(post.category?.id) === selectedCategory
+      || (selectedCategoryName && post.categoryName === selectedCategoryName)
     const matchesSearch = !normalizedTerm || `${post.title || ''} ${post.summary || ''}`.toLocaleLowerCase('pt-BR').includes(normalizedTerm)
     return matchesCategory && matchesSearch && (!showFavorites || isFavorite(post.id))
   })
@@ -117,7 +119,7 @@ const Content = () => {
             aria-pressed={showFavorites}
             className={`rounded-full px-5 py-2.5 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#245747] ${showFavorites ? 'bg-[#11271F] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
           >
-            Meus favoritos ({favorites.length})
+            Meus favoritos ({loadingFavorites ? '...' : favorites.length})
           </button>
         </div>
 
@@ -149,10 +151,10 @@ const Content = () => {
           {feedback && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-emerald-800">{feedback}</p>}
           {favoriteError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-red-700">{favoriteError}</p>}
           {categoryWarning && <p className="rounded-lg bg-amber-50 p-3 text-amber-800">{categoryWarning}</p>}
-          <p className="text-gray-600">Os favoritos são salvos somente neste navegador; não são sincronizados com sua conta.</p>
+          <p className="text-gray-600">{usingAccount ? 'Os favoritos ficam vinculados à sua conta.' : 'Entre na sua conta para sincronizar favoritos entre dispositivos. Sem login, eles ficam somente neste navegador.'}</p>
         </div>
 
-        {loading ? (
+        {loading || (showFavorites && loadingFavorites) ? (
           <p role="status" className="py-10 text-center text-gray-600">Carregando conteúdos...</p>
         ) : error ? (
           <div role="alert" className="py-10 text-center text-sm text-red-700">
@@ -168,10 +170,11 @@ const Content = () => {
                 <ContentCard
                   key={post.id}
                   id={post.id}
-                  category={post.category?.name}
+                  category={post.category?.name || post.categoryName}
                   title={post.title}
                   description={post.summary}
                   isFavorite={isFavorite(post.id)}
+                  favoriteDisabled={loadingFavorites || !favoritesReady || savingFavorite}
                   onToggleFavorite={() => handleFavorite(post)}
                 />
               ))}
@@ -179,7 +182,7 @@ const Content = () => {
           </>
         ) : (
           <div role="status" className="py-10 text-center text-sm text-gray-600">
-            <p>{showFavorites && favorites.length === 0 ? 'Você ainda não salvou conteúdos favoritos.' : 'Nenhum conteúdo corresponde aos filtros selecionados.'}</p>
+            <p>{showFavorites && !favoritesReady ? 'Não foi possível consultar seus favoritos. Verifique a mensagem acima e tente novamente.' : showFavorites && favoritesReady && favorites.length === 0 ? 'Você ainda não salvou conteúdos favoritos.' : 'Nenhum conteúdo corresponde aos filtros selecionados.'}</p>
             <button type="button" onClick={() => { setSearchTerm(''); setSelectedCategory(''); chooseFavoriteFilter(false) }} className="mt-4 rounded-lg border border-[#245747] px-4 py-2 font-semibold text-[#245747] hover:bg-emerald-50">Ver todos os conteúdos</button>
           </div>
         )}
