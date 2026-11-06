@@ -88,7 +88,7 @@ const CollectionPointDetail = () => {
   const [error, setError] = useState('')
   const [retryKey, setRetryKey] = useState(0)
 
-  const { isFavorite: checkFavorite, toggleFavorite, favoriteError } = useFavorites(COLLECTION_POINT_FAVORITES_KEY)
+  const { isFavorite: checkFavorite, toggleFavorite, favoriteError, loadingFavorites, favoritesReady, savingFavorite, usingAccount } = useFavorites(COLLECTION_POINT_FAVORITES_KEY)
   const isFavorite = checkFavorite(id)
 
   // Loads collection point details from the API.
@@ -135,7 +135,7 @@ const CollectionPointDetail = () => {
   }, [id, retryKey])
 
   const handleFavorite = () => {
-    toggleFavorite(id)
+    void toggleFavorite(id)
   }
 
   const handleRetry = () => {
@@ -407,6 +407,7 @@ const CollectionPointDetail = () => {
                 type="button"
                 onClick={handleFavorite}
                 aria-pressed={isFavorite}
+                disabled={loadingFavorites || !favoritesReady || savingFavorite}
                 aria-label={
                   isFavorite
                     ? 'Remover ponto dos favoritos'
@@ -439,8 +440,7 @@ const CollectionPointDetail = () => {
               )}
 
               <p className="w-full text-xs text-gray-500">
-                Os favoritos são salvos apenas neste navegador.
-                Ainda não são sincronizados com sua conta.
+                {usingAccount ? 'Favoritos sincronizados com sua conta.' : 'Entre para sincronizar seus favoritos. Sem login, eles ficam somente neste navegador.'}
               </p>
             </div>
           </div>

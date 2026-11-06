@@ -18,6 +18,7 @@ const Wallet = () => {
   const [disposals, setDisposals] = useState([])
   const [points, setPoints] = useState([])
   const [clothTypes, setClothTypes] = useState([])
+  const [clothTypeWarning, setClothTypeWarning] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [feedback, setFeedback] = useState('')
@@ -46,7 +47,7 @@ const Wallet = () => {
       setUpdatedAt(balanceResult.updatedAt)
       setTransactions(historyResult.content || [])
       setTransactionPage(historyResult.page || null)
-      setDisposals(disposalsResult.content || [])
+      setDisposals(disposalsResult.disposals?.content || disposalsResult.content || [])
     } catch (requestError) {
       setError(requestError.message || 'Não foi possível carregar sua carteira.')
     } finally {
@@ -57,22 +58,34 @@ const Wallet = () => {
   useEffect(() => {
     let active = true
     const loadFormOptions = async () => {
-      try {
-        const [availablePoints, availableTypes] = await Promise.all([
-          collectionPointService.getCollectionPoints(),
-          cashbackService.getPublicClothTypes(),
-        ])
-        if (active) {
-          setPoints(availablePoints)
-          setClothTypes(availableTypes)
-        }
-      } catch (requestError) {
-        if (active) setError(requestError.message || 'Não foi possível carregar pontos e tecidos.')
+      const [pointsResult, typesResult] = await Promise.allSettled([
+        collectionPointService.getCollectionPoints(),
+        cashbackService.getPublicClothTypes(),
+      ])
+      if (!active) return
+
+      if (pointsResult.status === 'fulfilled') {
+        setPoints(pointsResult.value)
+      } else {
+        setError(pointsResult.reason?.message || 'Não foi possível carregar os pontos de coleta.')
+      }
+
+      if (typesResult.status === 'fulfilled') {
+        setClothTypes(typesResult.value)
+        setClothTypeWarning('')
+      } else {
+        setClothTypes([])
+        setClothTypeWarning(
+          'A lista de tipos de tecido não está disponível. O registro de descarte depende da liberação do endpoint /cloth-types pelo backend.'
+        )
       }
     }
-    loadFormOptions()
-    Promise.resolve().then(loadData)
+    void loadFormOptions()
     return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    Promise.resolve().then(() => loadData())
   }, [loadData])
 
   const selectedPoint = points.find((point) => String(point.id) === disposalForm.collectionPointId)
@@ -81,7 +94,8 @@ const Wallet = () => {
     const acceptedIds = selectedPoint.clothTypeIds || []
     return clothTypes.filter((type) =>
       acceptedIds.some((id) => Number(id) === Number(type.id))
-      || (selectedPoint.acceptedClothTypes || []).includes(type.name))
+      || (selectedPoint.acceptedClothTypes || []).some((accepted) =>
+        (typeof accepted === 'string' ? accepted : accepted?.name) === type.name))
   }, [selectedPoint, clothTypes])
 
   const toggleClothType = (typeId, checked) => {
@@ -95,6 +109,10 @@ const Wallet = () => {
 
   const handleCreateDisposal = async (event) => {
     event.preventDefault()
+    if (!disposalForm.clothTypeIds.length) {
+      setError('Selecione pelo menos um tipo de tecido antes de registrar o descarte.')
+      return
+    }
     setSavingDisposal(true)
     setError('')
     setFeedback('')
@@ -150,6 +168,7 @@ const Wallet = () => {
       </header>
 
       {error && <p role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</p>}
+      {clothTypeWarning && <p role="alert" className="rounded-lg bg-amber-50 p-4 text-sm text-amber-900">{clothTypeWarning}</p>}
       {feedback && <p role="status" className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800">{feedback}</p>}
 
       <section className="rounded-2xl bg-[#123C2C] p-6 text-white shadow-sm sm:p-8">
@@ -189,7 +208,7 @@ const Wallet = () => {
               {selectedPoint && acceptedTypes.length === 0 && <p className="text-sm text-gray-500">Este ponto não possui tecidos disponíveis para seleção.</p>}
             </div>
           </fieldset>
-          <button type="submit" disabled={savingDisposal || !acceptedTypes.length} className="rounded-lg bg-[#123C2C] px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+          <button type="submit" disabled={savingDisposal || !acceptedTypes.length || !disposalForm.clothTypeIds.length} className="rounded-lg bg-[#123C2C] px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
             {savingDisposal ? 'Registrando...' : 'Registrar descarte'}
           </button>
         </form>

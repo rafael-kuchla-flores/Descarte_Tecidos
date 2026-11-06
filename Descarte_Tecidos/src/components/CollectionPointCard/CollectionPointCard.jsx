@@ -20,7 +20,7 @@ const ICONS = {
 }
 
 function CollectionPointCard({ point, isSelected = false, onSelect }) {
-    const { isFavorite, toggleFavorite, favoriteError } = useFavorites(COLLECTION_POINT_FAVORITES_KEY)
+    const { isFavorite, toggleFavorite, favoriteError, loadingFavorites, favoritesReady, savingFavorite } = useFavorites(COLLECTION_POINT_FAVORITES_KEY)
     const saved = isFavorite(point.id)
     const status = String(point.status || '').toUpperCase()
     const isAvailable = status === 'ATIVO' || status === 'ACTIVE'
@@ -29,7 +29,7 @@ function CollectionPointCard({ point, isSelected = false, onSelect }) {
 
     const handleFavoriteClick = (e) => {
         e.stopPropagation() // Impede de selecionar o card ao apenas favoritar
-        toggleFavorite(point.id)
+        void toggleFavorite(point.id)
     }
 
     return (
@@ -69,6 +69,7 @@ function CollectionPointCard({ point, isSelected = false, onSelect }) {
                     title={saved ? 'Remover dos favoritos' : 'Favoritar'}
                     aria-label={saved ? `Remover ${point.name} dos favoritos` : `Favoritar ${point.name}`}
                     aria-pressed={saved}
+                    disabled={loadingFavorites || !favoritesReady || savingFavorite}
                 >
                     {saved ? (
                         <RiHeartFill className="text-xl text-red-500" />

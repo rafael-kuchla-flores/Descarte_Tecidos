@@ -11,7 +11,7 @@ Completar melhorias de **interface e navegação** no frontend React/Vite, prese
 | Área | Alteração |
 |---|---|
 | Conteúdos educativos | Favoritar/desfavoritar pelo card e pela tela de detalhes; filtro **Meus favoritos**; busca e filtros por categoria preservados; mensagens de carregamento, erro, vazio e tentativa de recarregar. |
-| Favoritos locais | Hook compartilhado `src/hooks/useFavorites.js`, com atualização entre componentes e abas, tratamento de falhas de armazenamento e chaves separadas para conteúdo e pontos. |
+| Favoritos locais | Hook compartilhado `src/hooks/useFavorites.js`: para usuário autenticado, sincroniza com a API Java; para visitante sem login, utiliza armazenamento local no navegador, com chaves separadas por tipo. |
 | Pontos de coleta | O botão de coração do card agora usa o **mesmo armazenamento** do detalhe do ponto. Seleção no mapa virou botão acessível ao teclado; status de ponto pendente ou pausado não aparece como “Recebendo”. |
 | Campanhas | Listagem com estados de carregamento, erro e vazio, preservando o serviço de campanhas existente. |
 | Navegação | Rota inexistente mostra página 404; URL antiga `/registrar-descarte` encaminha ao formulário funcional de `/carteira`; atalhos de favoritos e rótulo do menu móvel. |
@@ -21,9 +21,9 @@ Completar melhorias de **interface e navegação** no frontend React/Vite, prese
 
 ### Como funcionam os favoritos
 
-- **Conteúdos:** `localStorage` sob `ecotecido:favoritePosts`, IDs em um array JSON.
-- **Pontos de coleta:** `localStorage` sob `ecotecido:favoriteCollectionPoints`, preservando a chave anterior.
-- Os favoritos **não** são persistidos no backend ou sincronizados entre dispositivos/contas. Não há endpoint de favoritos documentado no frontend recebido. O hook foi separado justamente para permitir futura troca por um serviço autenticado.
+- **Usuários autenticados:** favoritos de conteúdos e pontos são consultados e atualizados por `GET`, `PUT` e `DELETE` em `/user/favorite-posts` e `/user/favorite-collection-points`, respectivamente.
+- **Visitantes:** listas locais no `localStorage` (`ecotecido:favoritePosts` e `ecotecido:favoriteCollectionPoints`); não são migradas automaticamente ao fazer login.
+- A mudança para a API depende de disponibilidade do backend Java, JWT e CORS. As falhas são exibidas e não provocam gravação local silenciosa para contas autenticadas.
 - A tela de conteúdos pode ser aberta diretamente em `/conteudos?favoritos=1`.
 
 ## 3. Organização e pontos de integração
@@ -37,7 +37,7 @@ Completar melhorias de **interface e navegação** no frontend React/Vite, prese
 - `src/pages/wallet/Wallet.jsx` — carteira, registro de descarte e resgate reais via API.
 - `src/pages/collection-point/DisposalReview.jsx` — confirmação/rejeição de descartes.
 - `src/pages/admin/cashback-rules/CashbackRules.jsx` — regra de pontos/kg.
-- `src/hooks/useFavorites.js` — solução local de favoritos, não ligada à API.
+- `src/hooks/useFavorites.js`, `src/services/favoritesService.js` — integração de favoritos com API para contas autenticadas; modo local apenas para visitantes.
 
 ## 4. Como executar na máquina da equipe (CMD)
 
@@ -81,7 +81,7 @@ VITE_API_URL=http://localhost:4000/api/v1
 5. `campaignService.js` possui **campanhas de demonstração/fallback**. Confirmar com a equipe quando serão substituídas pelo backend.
 6. O formulário de newsletter e links de redes sociais do rodapé são **elementos de interface**, não integrações comprovadas; não anunciar como serviço ativo.
 7. `npm run lint` no projeto inteiro já identifica erros preexistentes em outros arquivos (`react-hooks/set-state-in-effect`, imports não utilizados etc.). Os arquivos funcionais alterados foram verificados com ESLint individualmente; a limpeza global do lint precisa ser coordenada para evitar sobrescrever trabalho alheio.
-8. URLs `/posts`, `/categories` e imagens dependem de disponibilidade e autenticação do backend; favoritos não permitem leitura offline do conteúdo em si.
+8. URLs `/posts`, `/categories` e imagens dependem de disponibilidade e autenticação do backend; favoritos não permitem leitura offline do conteúdo em si. A listagem pública de tipos de tecidos precisa ser liberada no backend para que doadores possam registrar descartes (veja `FRONTEND_BACKEND_CONTRACT.md`).
 
 ## 6. Aplicação do pacote de alterações
 
@@ -106,3 +106,7 @@ O pacote de alteração **não contém** `.git`, `node_modules`, `.env` ou arqui
 - ESLint: passou nos arquivos diretamente alterados na implementação (com exceção de arquivos preexistentes que não fazem parte da correção global de lint).
 - Resolução estática de imports locais: sem caminhos ausentes ou inconsistências de maiúsculas/minúsculas.
 - Build **não pôde ser executado neste ambiente Linux**, porque o ZIP original traz dependências nativas do ambiente Windows (`rolldown`) e não havia acesso à rede para instalar a variante Linux. **Executar `npm run build` no Windows antes de publicar ou entregar ao QA.**
+
+## 8. Atualização de integração — 06/11/2026
+
+Correções do contrato entre o frontend e o backend Java `develop` estão detalhadas em `docs/FRONTEND_BACKEND_CONTRACT.md`. O cashback agora envia `newPointsPerKg` como query parameter; favoritos autenticados utilizam a API; o histórico de descartes é lido de `disposals.content` e a listagem de posts usa `categoryName`. A rota de tipos de tecido para doadores ainda depende de ação do backend. Executar novamente o build após aplicar este patch.

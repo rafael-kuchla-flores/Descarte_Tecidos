@@ -11,7 +11,7 @@ const ContentDetail = () => {
   const [result, setResult] = useState({ id: null, post: null, error: '' })
   const [feedback, setFeedback] = useState('')
   const [retryKey, setRetryKey] = useState(0)
-  const { isFavorite, toggleFavorite, favoriteError } = useFavorites(POST_FAVORITES_KEY)
+  const { isFavorite, toggleFavorite, favoriteError, loadingFavorites, favoritesReady, savingFavorite, usingAccount } = useFavorites(POST_FAVORITES_KEY)
 
   useEffect(() => {
     let cancelled = false
@@ -34,8 +34,8 @@ const ContentDetail = () => {
     ? publishedAt.toLocaleDateString('pt-BR')
     : null
 
-  const handleFavorite = () => {
-    const nowFavorite = toggleFavorite(id)
+  const handleFavorite = async () => {
+    const nowFavorite = await toggleFavorite(id)
     if (nowFavorite !== null) {
       setFeedback(nowFavorite ? 'Conteúdo adicionado aos favoritos.' : 'Conteúdo removido dos favoritos.')
     } else {
@@ -67,6 +67,7 @@ const ContentDetail = () => {
                 type="button"
                 onClick={handleFavorite}
                 aria-pressed={saved}
+                disabled={loadingFavorites || !favoritesReady || savingFavorite}
                 className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#245747] px-4 py-2 text-sm font-semibold text-[#245747] hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#245747]"
               >
                 {saved ? <RiHeartFill aria-hidden="true" /> : <RiHeartLine aria-hidden="true" />}
@@ -94,7 +95,7 @@ const ContentDetail = () => {
               </div>
             )}
             {publicationDate && <p className="mt-8 text-xs text-gray-600">Publicado em {publicationDate}{post.createdByName ? ` · por ${post.createdByName}` : ''}</p>}
-            <p className="mt-3 text-xs text-gray-600">Seus favoritos ficam salvos somente neste navegador.</p>
+            <p className="mt-3 text-xs text-gray-600">{usingAccount ? 'Favoritos sincronizados com sua conta.' : 'Entre para sincronizar favoritos com sua conta. Sem login, ficam somente neste navegador.'}</p>
             <Link to="/conteudos?favoritos=1" className="mt-4 inline-flex text-sm font-semibold text-[#245747] underline">Ver meus favoritos</Link>
           </article>
         ) : (
