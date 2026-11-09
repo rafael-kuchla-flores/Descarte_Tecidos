@@ -76,6 +76,7 @@ const CollectionPoints = () => {
   const [loadingCep, setLoadingCep] = useState(false)
   const [loadingLocation, setLoadingLocation] = useState(false)
   const [cepError, setCepError] = useState('')
+  const [imageFile, setImageFile] = useState(null)
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -268,6 +269,7 @@ const CollectionPoints = () => {
   const handleOpenModal = async () => {
     setEditingId(null)
     setFormError('')
+    setImageFile(null)
     setFormData({
       nome: '', street: '', number: '', complement: '', bairro: '', zipCode: '',
       cidade: '', state: 'PE', latitude: '', longitude: '', imageUrl: '', openTime: '08:00', closeTime: '18:00', clothTypeIds: [],
@@ -297,6 +299,7 @@ const CollectionPoints = () => {
   const handleEditPoint = async (id) => {
     setEditingId(id)
     setFormError('')
+    setImageFile(null)
     setIsModalOpen(true)
 
     try {
@@ -341,6 +344,7 @@ const CollectionPoints = () => {
     setIsModalOpen(false)
     setEditingId(null)
     setFormError('')
+    setImageFile(null)
   }
 
   const handleSubmit = async (e) => {
@@ -362,6 +366,10 @@ const CollectionPoints = () => {
       return
     }
 
+    if (!editingId && !imageFile) {
+      setFormError('Selecione uma imagem para o ponto de coleta.')
+      return
+    }
 
     if (!formData.latitude || !formData.longitude) {
       setFormError(
@@ -421,11 +429,17 @@ const CollectionPoints = () => {
           operatingHour: operatingHours,
         })
       } else {
-        await pointService.createPonto(pointData)
+        await pointService.createPonto({
+          name: pointData.name,
+          address: pointData.address,
+          clothTypeIds: pointData.clothTypeIds,
+          operatingHours: pointData.operatingHours,
+        }, imageFile)
       }
 
       setIsModalOpen(false)
       setEditingId(null)
+      setImageFile(null)
       setFormData({
         nome: '', street: '', number: '', complement: '', bairro: '', zipCode: '',
         cidade: '', state: 'PE', latitude: '', longitude: '', imageUrl: '', openTime: '08:00', closeTime: '18:00', clothTypeIds: [],
@@ -827,15 +841,31 @@ const CollectionPoints = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block font-semibold text-gray-700 mb-1">URL da imagem de capa</label>
-                  <input
-                    type="url"
-                    placeholder="https://exemplo.com/imagem.jpg"
-                    value={formData.imageUrl}
-                    onChange={(event) => setFormData({ ...formData, imageUrl: event.target.value })}
-                    className="w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:border-[#123C2C] focus:outline-none"
-                  />
-                  {editingId && <PointImagePreview pointId={editingId} />}
+                  {editingId ? (
+                    <>
+                      <label className="block font-semibold text-gray-700 mb-1">URL da imagem de capa</label>
+                      <input
+                        type="url"
+                        placeholder="https://exemplo.com/imagem.jpg"
+                        value={formData.imageUrl}
+                        onChange={(event) => setFormData({ ...formData, imageUrl: event.target.value })}
+                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:border-[#123C2C] focus:outline-none"
+                      />
+                      <PointImagePreview pointId={editingId} />
+                    </>
+                  ) : (
+                    <>
+                      <label htmlFor="point-image" className="block font-semibold text-gray-700 mb-1">Imagem do ponto*</label>
+                      <input
+                        id="point-image"
+                        type="file"
+                        accept="image/*"
+                        required
+                        onChange={(event) => setImageFile(event.target.files?.[0] || null)}
+                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:border-[#123C2C] focus:outline-none"
+                      />
+                    </>
+                  )}
                 </div>
                 <fieldset>
                   <legend className="mb-2 block font-semibold text-gray-700">Tipos de tecido aceitos*</legend>

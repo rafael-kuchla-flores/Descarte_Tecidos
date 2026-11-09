@@ -24,10 +24,18 @@ const getPointImage = async (id) => apiBlob(`/admin/collection-points/${id}/imag
 
 const getPendingPointImage = async (id) => apiBlob(`/admin/collection-points/${id}/pending-image`)
 
-const createPonto = async (pointData) => {
+const createPonto = async (pointData, image) => {
+  if (!image) {
+    throw new Error('Selecione uma imagem para o ponto de coleta.')
+  }
+
+  const body = new FormData()
+  body.append('data', new Blob([JSON.stringify(pointData)], { type: 'application/json' }))
+  body.append('image', image)
+
   return await api('/admin/collection-points', {
     method: 'POST',
-    body: JSON.stringify(pointData),
+    body,
   })
 }
 
