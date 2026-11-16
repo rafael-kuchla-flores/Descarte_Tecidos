@@ -1,3 +1,164 @@
+
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import Header from '../../../components/Header/Header'
+import ContentCard from '../../../components/contentcard/ContentCard'
+import { POST_FAVORITES_KEY, useFavorites } from '../../../hooks/useFavorites'
+import { listAllPosts, listCategories } from '../../../services/contentService'
+import { educationalPosts } from '../../../data/educationalPosts'
+
+// Os guias estáticos não possuem IDs na API. Seus favoritos ficam neste navegador.
+const LOCAL_FAVORITES_KEY = 'ecotecidos:educationalFavorites'
+
+const readLocalFavorites = () => {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(LOCAL_FAVORITES_KEY) || '[]')
+    return Array.isArray(saved) ? saved.filter((id) => typeof id === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+const Content = () => {
+  const [posts, setPosts] = useState([])
+  const [categories, setCategories] = useState([])
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [categoryWarning, setCategoryWarning] = useState('')
+  const [feedback, setFeedback] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
+  const [localFavorites, setLocalFavorites] = useState(readLocalFavorites)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const {
+    favorites,
+    isFavorite,
+    toggleFavorite,
+    favoriteError,
+    loadingFavorites,
+    favoritesReady,
+    savingFavorite,
+    usingAccount,
+  } = useFavorites(POST_FAVORITES_KEY)
+
+  const showFavorites = searchParams.get('favoritos') === '1'
+
+  // Salva os favoritos educativos mesmo depois de recarregar a página.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(LOCAL_FAVORITES_KEY, JSON.stringify(localFavorites))
+    } catch {
+      // Se o navegador bloquear o armazenamento, mantém os favoritos na sessão.
+    }
+  }, [localFavorites])
+
+  // Carrega publicações da API sem interromper os guias locais se houver falha.
+  useEffect(() => {
+    let cancelled = false
+
+    const loadContent = async () => {
+      setLoading(true)
+      setError('')
+      setCategoryWarning('')
+
+      const [categoriesResult, postsResult] = await Promise.allSettled([
+        listCategories(),
+        listAllPosts({ size: 100, sort: 'createdAt,desc' }),
+      ])
+
+      if (cancelled) return
+
+      if (postsResult.status === 'fulfilled') {
+        setPosts(Array.isArray(postsResult.value) ? postsResult.value : [])
+      } else {
+        setPosts([])
+        setError(postsResult.reason?.message || 'Não foi possível carregar as publicações.')
+      }
+
+      if (categoriesResult.status === 'fulfilled') {
+        setCategories(Array.isArray(categoriesResult.value) ? categoriesResult.value : [])
+      } else {
+        setCategories([])
+        setCategoryWarning('As categorias do sistema não puderam ser carregadas.')
+      }
+
+      setLoading(false)
+    }
+
+    void loadContent()
+    return () => { cancelled = true }
+  }, [reloadKey])
+
+  const chooseFavoriteFilter = (enabled) => {
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous)
+      if (enabled) next.set('favoritos', '1')
+      else next.delete('favoritos')
+      return next
+    })
+    setFeedback('')
+  }
+
+  const toggleLocalFavorite = (id) => {
+    setLocalFavorites((current) => current.includes(id)
+      ? current.filter((savedId) => savedId !== id)
+      : [...current, id]
+    )
+  }
+
+  const handleFavorite = async (post) => {
+    const nowFavorite = await toggleFavorite(post.id)
+    setFeedback(nowFavorite === null ? '' : nowFavorite
+      ? `“${post.title}” salvo nos favoritos.`
+      : `“${post.title}” removido dos favoritos.`
+    )
+  }
+
+  const clearFilters = () => {
+    setSearchTerm('')
+    setSelectedCategory('')
+    chooseFavoriteFilter(false)
+  }
+
+  const normalizedTerm = searchTerm.trim().toLocaleLowerCase('pt-BR')
+
+  // Pesquisa por título, categoria, resumo e texto dos cinco guias.
+  const localFilteredPosts = educationalPosts.filter((post) => {
+    const searchableText = [
+      post.title,
+      post.summary,
+      post.category,
+      ...(post.paragraphs || []),
+    ].join(' ').toLocaleLowerCase('pt-BR')
+
+    return searchableText.includes(normalizedTerm) &&
+      (!showFavorites || localFavorites.includes(post.id))
+  })
+
+  // Mantém os filtros e favoritos já existentes para os artigos da API.
+  const selectedCategoryName = categories.find(
+    (category) => String(category.id) === selectedCategory
+  )?.name
+
+  const filteredPosts = posts.filter((post) => {
+    const matchesCategory = !selectedCategory ||
+      String(post.category?.id) === selectedCategory ||
+      (selectedCategoryName && post.categoryName === selectedCategoryName)
+
+    const matchesSearch = !normalizedTerm ||
+      `${post.title || ''} ${post.summary || ''}`
+        .toLocaleLowerCase('pt-BR')
+        .includes(normalizedTerm)
+
+    return matchesCategory && matchesSearch &&
+      (!showFavorites || isFavorite(post.id))
+  })
+
+  const favoritesCount = localFavorites.length + favorites.length
+
+  return (
     <>
       <Header />
 
@@ -158,3 +319,87 @@
                   aria-pressed={String(category.id) === selectedCategory}
                   className={`rounded-full px-4 py-2 text-sm font-medium ${String(category.id) === selectedCategory ? 'bg-[#245747] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                 >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div aria-live="polite" className="mb-5 space-y-2 text-sm">
+            {feedback && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-emerald-800">{feedback}</p>}
+            {favoriteError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-red-700">{favoriteError}</p>}
+            {categoryWarning && !error && <p className="rounded-lg bg-amber-50 p-3 text-amber-800">{categoryWarning}</p>}
+            <p className="text-gray-600">
+              {usingAccount
+                ? 'Os favoritos dos artigos cadastrados ficam vinculados à sua conta.'
+                : 'Entre na sua conta para sincronizar os artigos favoritos entre dispositivos.'}
+            </p>
+          </div>
+
+          {loading || (showFavorites && loadingFavorites) ? (
+            <p role="status" className="py-10 text-center text-gray-600">Carregando publicações...</p>
+          ) : error ? (
+            <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-6 py-8 text-center">
+              <h3 className="mb-2 text-lg font-bold text-amber-900">
+                Publicações do sistema indisponíveis
+              </h3>
+              <p className="text-sm text-amber-900">
+                Não foi possível carregar os artigos do servidor. Os guias acima continuam disponíveis.
+              </p>
+              {error.toLowerCase().includes('token') && (
+                <Link to="/login" className="mt-4 inline-block font-semibold text-amber-900 underline">
+                  Entrar para visualizar publicações
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={() => setReloadKey((key) => key + 1)}
+                className="mx-auto mt-4 block rounded-lg border border-amber-400 px-4 py-2 font-semibold text-amber-900 hover:bg-amber-100"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          ) : filteredPosts.length > 0 ? (
+            <>
+              <p role="status" className="mb-4 text-sm text-gray-600">
+                {filteredPosts.length} {filteredPosts.length === 1 ? 'publicação encontrada' : 'publicações encontradas'}
+              </p>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredPosts.map((post) => (
+                  <ContentCard
+                    key={post.id}
+                    id={post.id}
+                    category={post.category?.name || post.categoryName}
+                    title={post.title}
+                    description={post.summary}
+                    isFavorite={isFavorite(post.id)}
+                    favoriteDisabled={loadingFavorites || !favoritesReady || savingFavorite}
+                    onToggleFavorite={() => handleFavorite(post)}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            <div role="status" className="py-10 text-center text-sm text-gray-600">
+              <p>{showFavorites && !favoritesReady
+                ? 'Não foi possível consultar seus artigos favoritos. Verifique a mensagem acima.'
+                : showFavorites && favoritesReady && favorites.length === 0
+                  ? 'Você não possui publicações favoritas na API. Seus guias favoritos aparecem acima.'
+                  : 'Nenhuma publicação corresponde aos filtros selecionados.'}
+              </p>
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="mt-4 rounded-lg border border-[#245747] px-4 py-2 font-semibold text-[#245747] hover:bg-emerald-50"
+              >
+                Ver todos os conteúdos
+              </button>
+            </div>
+          )}
+        </section>
+      </main>
+    </>
+  )
+}
+
+export default Content
