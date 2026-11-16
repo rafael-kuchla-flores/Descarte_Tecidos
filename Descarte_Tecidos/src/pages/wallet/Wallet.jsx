@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import cashbackService from '../../services/cashbackService'
 import collectionPointService from '../../services/collectionPointService'
+import Header from '../../components/Header/Header'
 
 const formatPoints = (value) => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(Number(value) || 0)
 
@@ -161,7 +162,9 @@ const Wallet = () => {
   const changePage = (page) => loadData(page)
 
   return (
-    <main className="mx-auto max-w-6xl space-y-8">
+    <>
+      <Header />
+      <main className="mx-auto max-w-6xl space-y-8 px-4 py-10">
       <header>
         <h1 className="text-3xl font-bold text-gray-900">Cashback e carteira</h1>
         <p className="mt-2 text-sm text-gray-600">Acompanhe seus pontos, descartes e resgates.</p>
@@ -293,7 +296,8 @@ const Wallet = () => {
           </div>
         )}
       </section>
-    </main>
+      </main>
+    </>
   )
 }
 
