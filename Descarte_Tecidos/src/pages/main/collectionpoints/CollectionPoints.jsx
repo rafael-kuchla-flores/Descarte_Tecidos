@@ -9,6 +9,8 @@ import {
 import Header from '../../../components/Header/Header'
 import CollectionPointCard from '../../../components/CollectionPointCard/CollectionPointCard'
 import collectionPointService from '../../../services/collectionPointService'
+import cashbackService from '../../../services/cashbackService'
+import { Link } from 'react-router-dom'
 
 // Reads material names from strings or API objects.
 const getMaterialName = (material) => {
@@ -160,6 +162,26 @@ export default function CollectionPoints() {
   // Keeps available materials even after API filtering.
   const [materialOptions, setMaterialOptions] = useState([])
 
+  // Loads the real textile catalog, even when no collection point uses a type yet.
+  useEffect(() => {
+    let active = true
+    cashbackService.getPublicClothTypes()
+      .then((types) => {
+        if (!active) return
+        setMaterialOptions((previous) => {
+          const byName = new Map(previous.map((item) => [item.name.toLowerCase(), item]))
+          types
+            .filter((type) => type?.id != null && type?.name && type.isActive !== false)
+            .forEach((type) => {
+              byName.set(type.name.toLowerCase(), { name: type.name, id: type.id })
+            })
+          return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+        })
+      })
+      .catch((error) => console.error('Catálogo de tecidos indisponível:', error))
+    return () => { active = false }
+  }, [])
+
   // Collects material names and IDs from API responses.
   const registerMaterials = (collectionPoints) => {
     setMaterialOptions((previousOptions) => {
@@ -196,12 +218,6 @@ export default function CollectionPoints() {
       )
     })
   }
-
-  const selectedMaterial = materialOptions.find(
-    (option) => option.name === filters.material
-  )
-
-  const selectedMaterialId = selectedMaterial?.id ?? null
 
   // Requests browser geolocation only after user interaction.
   const requestLocation = () => {
@@ -251,23 +267,9 @@ export default function CollectionPoints() {
       setError('')
 
       try {
-        const coords = locationState.coords
-
-        const clothTypeIds =
-          selectedMaterialId !== null
-            ? [selectedMaterialId]
-            : []
-
-        const data = coords
-          ? await collectionPointService.getNearbyPoints({
-              lat: coords.latitude,
-              lng: coords.longitude,
-              radiusKm: filters.maxDistance
-                ? Number(filters.maxDistance)
-                : 100,
-              clothTypeIds,
-            })
-          : await collectionPointService.getCollectionPoints()
+        // Retrieve all APPROVED points so a city search is not limited to the
+        // visitor's current 100-km radius. Distance is calculated locally below.
+        const data = await collectionPointService.getCollectionPoints()
 
         if (!cancelled) {
           const collectionPoints = Array.isArray(data)
@@ -302,11 +304,7 @@ export default function CollectionPoints() {
     return () => {
       cancelled = true
     }
-  }, [
-    locationState.coords,
-    filters.maxDistance,
-    selectedMaterialId,
-  ])
+  }, [])
 
   // Applies local filters to the loaded collection points.
   const filteredPoints = points
@@ -325,8 +323,12 @@ export default function CollectionPoints() {
           }
     })
     .filter((point) => {
-      const normalizedSearch = search.toLowerCase().trim()
-      const materialFilter = filters.material.toLowerCase()
+      const normalizeText = (value) => String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase('pt-BR')
+      const normalizedSearch = normalizeText(search).trim()
+      const materialFilter = normalizeText(filters.material)
 
       const searchableText = [
         point.name,
@@ -335,7 +337,9 @@ export default function CollectionPoints() {
       ]
         .filter(Boolean)
         .join(' ')
-        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase('pt-BR')
 
       const matchesSearch =
         !normalizedSearch ||
@@ -348,8 +352,7 @@ export default function CollectionPoints() {
       const matchesMaterial =
         !materialFilter ||
         materials.some((material) =>
-          getMaterialName(material)
-            .toLowerCase()
+          normalizeText(getMaterialName(material))
             .includes(materialFilter)
         )
 
@@ -455,6 +458,12 @@ export default function CollectionPoints() {
           <p className="text-gray-500 mt-2">
             Encontre o ponto de descarte ou doação mais próximo de você.
           </p>
+          <p className="mt-4 text-sm text-gray-600">
+            Sua empresa ou organização recebe resíduos têxteis?{' '}
+            <Link to="/seja-parceiro" className="font-semibold text-emerald-800 underline underline-offset-2">
+              Solicite o cadastro de um ponto de coleta
+            </Link>
+          </p>
         </div>
 
         {/* Search */}
@@ -544,6 +553,12 @@ export default function CollectionPoints() {
                   </option>
                 ))}
               </select>
+              {materialOptions.length === 0 && (
+                <p className="mt-2 text-xs text-amber-800">
+                  Ainda não há tipos de tecido disponíveis no catálogo. Um administrador
+                  deve cadastrá-los ou a API precisa permitir a consulta.
+                </p>
+              )}
             </div>
 
             <div className="flex-1">
@@ -632,8 +647,20 @@ export default function CollectionPoints() {
                 {filteredPoints.length === 0 ? (
                   <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
                     <p className="text-gray-500 text-sm">
-                      Nenhum ponto encontrado para essa busca.
+                      Nenhum ponto de coleta aprovado encontrado para essa busca.
                     </p>
+                    <p className="mt-2 text-xs text-gray-500">
+                      O EcoTecidos exibe parceiros cadastrados. Você pode pesquisar outros
+                      estabelecimentos no mapa externo e confirmar diretamente se recebem tecidos.
+                    </p>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`coleta ou reciclagem de tecidos e roupas ${search.trim() || 'Porto Alegre RS'}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 inline-block text-sm font-semibold text-emerald-800 underline"
+                    >
+                      Buscar estabelecimentos no Google Maps (não verificados)
+                    </a>
 
                     <button
                       type="button"
