@@ -5,7 +5,6 @@ import { FiEye, FiEyeOff } from 'react-icons/fi'
 import plantalogin from '../../../assets/icons/plantalogin.png'
 import CustomInput from '../../../components/custominput/CustomInput'
 import authService from '../../../services/authService'
-import { RiRecycleFill } from 'react-icons/ri'
 
 const Register = () => {
   const navigate = useNavigate()
@@ -43,33 +42,37 @@ const Register = () => {
       return
     }
 
-    // Limpa pontuações do CPF e garante formato internacional no telefone
-    const cleanCpf = cpf.replace(/\D/g, '')
+    // CPF numérico ou CNPJ (inclusive alfanumérico)
+    const cleanDocument = cpf.replace(/[.\-/\s]/g, '').toUpperCase()
+    if (cleanDocument.length !== 11 && cleanDocument.length !== 14) {
+      setError('Informe um CPF com 11 dígitos ou CNPJ com 14 caracteres.')
+      return
+    }
+    if (cleanDocument.length === 11 && !/^\d{11}$/.test(cleanDocument)) {
+      setError('O CPF deve conter apenas números.')
+      return
+    }
+    if (!/^[A-Z0-9]+$/.test(cleanDocument)) {
+      setError('Informe um CPF ou CNPJ válido.')
+      return
+    }
+
     const cleanPhone = telefone.startsWith('+') ? telefone : `+55${telefone.replace(/\D/g, '')}`
 
     try {
       setLoading(true)
-
       await authService.register({
         name,
         email,
         password: senha,
         phone: cleanPhone,
-        document: cleanCpf,
+        document: cleanDocument,
       })
-
       setSuccess('Conta criada com sucesso! Redirecionando para o login...')
-
-      setTimeout(() => {
-        navigate('/login')
-      }, 2000)
-
+      setTimeout(() => navigate('/login'), 2000)
     } catch (err) {
       console.error(err)
-      setError(
-        err.data?.message ||
-        'Ocorreu um erro ao criar a conta. Verifique os dados e tente novamente.'
-      )
+      setError(err.data?.message || 'Ocorreu um erro ao criar a conta. Verifique os dados e tente novamente.')
     } finally {
       setLoading(false)
     }
@@ -78,131 +81,54 @@ const Register = () => {
   return (
     <>
       <Header />
-
       <main className="min-h-screen w-full flex flex-col lg:flex-row">
-
-      
         <section className="hidden lg:flex lg:w-1/2 bg-[#153D2C] text-white relative overflow-hidden flex-col justify-between p-12">
-
-         
-          {/* Textos Centrais */}
           <div className="my-auto max-w-sm">
-            <h1 className="text-3xl font-bold leading-tight mb-4">
-              Crie sua conta
-            </h1>
-            <p className="text-gray-200 text-base leading-relaxed">
-              Junte-se a uma rede de pessoas que acredita em um futuro mais sustentável.
-            </p>
+            <h1 className="text-3xl font-bold leading-tight mb-4">Crie sua conta</h1>
+            <p className="text-gray-200 text-base leading-relaxed">Junte-se a uma rede de pessoas que acredita em um futuro mais sustentável.</p>
           </div>
-
-          {/* Ícone de fundo / marca d'água */}
-          <img
-            src={plantalogin}
-            alt="Ícone de fundo"
-            className="absolute bottom-4 left-6 w-48 opacity-10 pointer-events-none"
-          />
+          <img src={plantalogin} alt="Ícone de fundo" className="absolute bottom-4 left-6 w-48 opacity-10 pointer-events-none" />
         </section>
-
-        {/* COLUNA DIREITA (Formulário Branco) */}
         <section className="w-full lg:w-1/2 min-h-screen bg-white flex items-center justify-center p-6 sm:p-12">
           <div className="w-full max-w-[400px]">
-
-            <h2 className="text-2xl font-bold text-[#123C2C] mb-8">
-              Cadastrar
-            </h2>
-
+            <h2 className="text-2xl font-bold text-[#123C2C] mb-8">Cadastrar</h2>
             <form onSubmit={handleRegister} className="flex flex-col gap-4">
-
+              <CustomInput label="Nome" type="text" placeholder="Seu nome completo" value={name} onChange={(e) => setName(e.target.value)} />
+              <CustomInput label="E-mail" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
               <CustomInput
-                label="Nome"
+                label="CPF ou CNPJ"
                 type="text"
-                placeholder="Seu nome completo"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-
-              <CustomInput
-                label="E-mail"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-
-              <CustomInput
-                label="CPF"
-                type="text"
-                placeholder="000.000.000-00"
+                placeholder="CPF (11 dígitos) ou CNPJ (14 caracteres)"
                 value={cpf}
                 onChange={(e) => setCpf(e.target.value)}
               />
-
+              <CustomInput label="Telefone" type="tel" placeholder="(11) 99999-9999" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
               <CustomInput
-                label="Telefone"
-                type="tel"
-                placeholder="(11) 99999-9999"
-                value={telefone}
-                onChange={(e) => setTelefone(e.target.value)}
+                label="Senha" type={showPassword ? 'text' : 'password'} placeholder="Mínimo de 6 caracteres"
+                value={senha} onChange={(e) => setSenha(e.target.value)}
+                rightIcon={showPassword
+                  ? <FiEyeOff className="cursor-pointer" onClick={() => setShowPassword(false)} />
+                  : <FiEye className="cursor-pointer" onClick={() => setShowPassword(true)} />}
               />
-
               <CustomInput
-                label="Senha"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Mínimo de 6 caracteres"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                rightIcon={
-                  showPassword
-                    ? <FiEyeOff className="cursor-pointer" onClick={() => setShowPassword(false)} />
-                    : <FiEye className="cursor-pointer" onClick={() => setShowPassword(true)} />
-                }
+                label="Confirmar senha" type={showConfirmPassword ? 'text' : 'password'} placeholder="Repita sua senha"
+                value={confirmarSenha} onChange={(e) => setConfirmarSenha(e.target.value)}
+                rightIcon={showConfirmPassword
+                  ? <FiEyeOff className="cursor-pointer" onClick={() => setShowConfirmPassword(false)} />
+                  : <FiEye className="cursor-pointer" onClick={() => setShowConfirmPassword(true)} />}
               />
-
-              <CustomInput
-                label="Confirmar senha"
-                type={showConfirmPassword ? 'text' : 'password'}
-                placeholder="Repita sua senha"
-                value={confirmarSenha}
-                onChange={(e) => setConfirmarSenha(e.target.value)}
-                rightIcon={
-                  showConfirmPassword
-                    ? <FiEyeOff className="cursor-pointer" onClick={() => setShowConfirmPassword(false)} />
-                    : <FiEye className="cursor-pointer" onClick={() => setShowConfirmPassword(true)} />
-                }
-              />
-
-              {/* Mensagens de Feedback */}
-              {error && (
-                <p className="text-red-600 text-xs font-medium">{error}</p>
-              )}
-              {success && (
-                <p className="text-green-600 text-xs font-medium">{success}</p>
-              )}
-
-              {/* Botão de Criação de Conta */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full h-11 rounded-lg bg-[#153D2C] text-white font-bold text-sm hover:bg-[#0f3023] transition disabled:opacity-60 mt-2 shadow-sm cursor-pointer"
-              >
+              {error && <p className="text-red-600 text-xs font-medium" role="alert">{error}</p>}
+              {success && <p className="text-green-600 text-xs font-medium" role="status">{success}</p>}
+              <button type="submit" disabled={loading} className="w-full h-11 rounded-lg bg-[#153D2C] text-white font-bold text-sm hover:bg-[#0f3023] transition disabled:opacity-60 mt-2 shadow-sm cursor-pointer">
                 {loading ? 'Criando conta...' : 'Criar conta'}
               </button>
             </form>
-
-            {/* Link para quem já possui conta */}
             <p className="text-center text-xs text-gray-500 mt-6">
               Já possui uma conta?{' '}
-              <NavLink
-                to="/login"
-                className="text-[#155A43] font-bold hover:underline"
-              >
-                Entrar
-              </NavLink>
+              <NavLink to="/login" className="text-[#155A43] font-bold hover:underline">Entrar</NavLink>
             </p>
-
           </div>
         </section>
-
       </main>
     </>
   )
