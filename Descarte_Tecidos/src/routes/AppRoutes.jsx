@@ -1,10 +1,10 @@
-
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import Home from "../pages/main/home/Home.jsx";
 import About from "../pages/main/about/About.jsx";
 import PointsCollection from "../pages/main/collectionpoints/CollectionPoints.jsx";
 import CollectionPointDetail from "../pages/main/collectionpoints/CollectionPointDetail.jsx";
+import PartnerRegistration from "../pages/main/collectionpoints/PartnerRegistration.jsx";
 import Campaigns from "../pages/main/campaigns/Campaigns.jsx";
 import CampaignDetail from "../pages/main/campaigns/CampaignDetail.jsx";
 import Content from "../pages/main/content/Content.jsx";
@@ -51,6 +51,7 @@ function AppRoutes() {
       <Route path="/como-funciona" element={<About />} />
       <Route path="/pontos-de-coleta" element={<PointsCollection />} />
       <Route path="/pontos-de-coleta/:id" element={<CollectionPointDetail />} />
+      <Route path="/seja-parceiro" element={<PartnerRegistration />} />
       <Route path="/campanhas" element={<Campaigns />} />
       <Route path="/campanhas/:id" element={<CampaignDetail />} />
       <Route path="/conteudos" element={<Content />} />
@@ -84,61 +85,28 @@ function AppRoutes() {
       <Route path="/acesso-negado" element={<AccessDenied />} />
 
       {/* Manager routes */}
-      <Route
-        element={
-          <ProtectedRoute allowedRoles={["PONTO_COLETA_GERENTE"]} />
-        }
-      >
+      <Route element={<ProtectedRoute allowedRoles={["PONTO_COLETA_GERENTE"]} />}>
         <Route path="/gerente" element={<ManagerLayout />}>
           <Route index element={<Navigate to="ponto" replace />} />
-          <Route
-            path="ponto"
-            element={<ManagerCollectionPoint />}
-          />
-          <Route
-            path="horarios"
-            element={<ManagerFeaturePending title="Horários" />}
-          />
-          <Route
-            path="tecidos"
-            element={<ManagerFeaturePending title="Tecidos Aceitos" />}
-          />
-          <Route
-            path="operadores"
-            element={<ManagerFeaturePending title="Operadores" />}
-          />
-          <Route
-            path="recebimentos"
-            element={<ManagerFeaturePending title="Recebimentos" />}
-          />
+          <Route path="ponto" element={<ManagerCollectionPoint />} />
+          <Route path="horarios" element={<ManagerFeaturePending title="Horários" />} />
+          <Route path="tecidos" element={<ManagerFeaturePending title="Tecidos Aceitos" />} />
+          <Route path="operadores" element={<ManagerFeaturePending title="Operadores" />} />
+          <Route path="recebimentos" element={<ManagerFeaturePending title="Recebimentos" />} />
           <Route path="descartes" element={<DisposalReview />} />
         </Route>
       </Route>
 
       {/* Operator routes */}
-      <Route
-        element={
-          <ProtectedRoute allowedRoles={["PONTO_COLETA_OPERADOR"]} />
-        }
-      >
+      <Route element={<ProtectedRoute allowedRoles={["PONTO_COLETA_OPERADOR"]} />}>
         <Route path="/operator" element={<OperatorLayout />}>
-          <Route
-            index
-            element={<Navigate to="dashboard" replace />}
-          />
-          <Route
-            path="dashboard"
-            element={<OperatorDashboard />}
-          />
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<OperatorDashboard />} />
           <Route path="receber" element={<ReceiveMaterial />} />
-          <Route
-            path="recebimentos"
-            element={<ReceiptsOperator />}
-          />
+          <Route path="recebimentos" element={<ReceiptsOperator />} />
           <Route path="descartes" element={<DisposalReview />} />
         </Route>
       </Route>
-
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
