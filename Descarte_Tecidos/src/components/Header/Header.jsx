@@ -29,7 +29,7 @@ const Header = () => {
                 <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 md:flex-row md:justify-between">
                     <Link to="/" aria-label="Ecotecido, página inicial" className="logo flex items-center gap-2 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-800 focus-visible:ring-offset-2">
                         <RiRecycleFill className="h-10 w-10 text-green-800 sm:h-12 sm:w-12" />
-                        <span className="text-xl font-bold text-green-800">ECOTECIDO</span>
+                        <span className="text-xl font-bold text-green-800">ECOTECIDOS</span>
                     </Link>
 
                     <div className="hidden md:block">
