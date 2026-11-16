@@ -1,5 +1,9 @@
 
-import api from './api';
+import api, { getAllPages } from './api';
+
+// ==========================================
+// NORMALIZAÇÃO DO SALDO
+// ==========================================
 
 const normalizeBalance = (response) => {
   const rawBalance =
@@ -24,7 +28,11 @@ const normalizeBalance = (response) => {
   return balance;
 };
 
-// Return a compatible balance for Profile and Wallet.
+// ==========================================
+// SALDO DA CARTEIRA
+// ==========================================
+
+// Retorna o saldo de cashback do usuário.
 const getBalance = async () => {
   const response = await api('/cashback/balance', {
     method: 'GET',
@@ -40,11 +48,19 @@ const getBalance = async () => {
   };
 };
 
-// Retrieve the paginated cashback history.
-const getHistory = async (params = {}) =>
-  api('/cashback/history', { params });
+// ==========================================
+// HISTÓRICO DE TRANSAÇÕES
+// ==========================================
 
-// Preserve the original transaction interface.
+// Consulta o histórico paginado de cashback.
+const getHistory = async (params = {}) =>
+  api('/cashback/history', {
+    method: 'GET',
+    params,
+  });
+
+// Mantém o formato utilizado pelos componentes
+// de perfil e carteira.
 const getTransactions = async (params = {}) => {
   const response = await getHistory(params);
 
@@ -53,7 +69,9 @@ const getTransactions = async (params = {}) => {
     : response?.content ?? response?.transactions;
 
   if (!Array.isArray(transactions)) {
-    throw new Error('O histórico retornado pela API é inválido.');
+    throw new Error(
+      'O histórico retornado pela API é inválido.'
+    );
   }
 
   return {
@@ -62,64 +80,106 @@ const getTransactions = async (params = {}) => {
   };
 };
 
-// Redeem cashback points.
+// ==========================================
+// RESGATE DE CASHBACK
+// ==========================================
+
+// Resgata os pontos disponíveis na carteira.
 const redeem = async (request) =>
   api('/cashback/redeem', {
     method: 'POST',
     body: JSON.stringify(request),
   });
 
-// Retrieve the authenticated user's disposals.
-const getMyDisposals = async (params = {}) =>
-  api('/disposals/my-disposals', { params });
+// ==========================================
+// DESCARTES DE TECIDOS
+// ==========================================
 
-// Register a new disposal.
+// Consulta os descartes registrados pelo usuário.
+const getMyDisposals = async (params = {}) =>
+  api('/disposals/my-disposals', {
+    method: 'GET',
+    params,
+  });
+
+// Registra um novo descarte.
 const createDisposal = async (request) =>
   api('/disposals', {
     method: 'POST',
     body: JSON.stringify(request),
   });
 
-// Retrieve available cloth types.
+// ==========================================
+// CATÁLOGO COMPLETO DE TIPOS DE TECIDO
+// ==========================================
+
+// Recupera todas as páginas do catálogo de tecidos
+// cadastrado no backend.
+//
+// Antes, apenas a primeira página era carregada.
+// Agora, todos os tipos podem ser recuperados,
+// respeitando a paginação da API.
+
 const getPublicClothTypes = async () => {
-  // The backend team must expose this endpoint for authenticated donors.
-  const response = await api('/cloth-types');
-  return Array.isArray(response) ? response : response?.content || [];
+  return getAllPages('/cloth-types', {
+    size: 100,
+  });
 };
 
-// Retrieve pending disposals for a collection point.
+// ==========================================
+// GERENCIAMENTO DE DESCARTES
+// ==========================================
+
+// Consulta descartes pendentes de um ponto de coleta.
 const getPendingDisposals = async (
   collectionPointId,
   params = {}
 ) =>
   api(
     `/disposals/collection-point/${collectionPointId}/pending`,
-    { params }
+    {
+      method: 'GET',
+      params,
+    }
   );
 
-// Confirm a disposal.
+// Confirma um descarte recebido.
 const confirmDisposal = async (id) =>
   api(`/disposals/${id}/confirm`, {
     method: 'PATCH',
   });
 
-// Reject a disposal with justification.
+// Rejeita um descarte com justificativa.
 const rejectDisposal = async (id, justification) =>
   api(`/disposals/${id}/reject`, {
     method: 'PATCH',
-    body: JSON.stringify({ justification }),
+    body: JSON.stringify({
+      justification,
+    }),
   });
 
-// Retrieve the current cashback rule.
-const getCurrentRule = async () =>
-  api('/admin/cashback-rules/current');
+// ==========================================
+// REGRAS DE CASHBACK
+// ==========================================
 
-// Update the points awarded per kilogram.
+// Consulta a regra atual de cashback.
+const getCurrentRule = async () =>
+  api('/admin/cashback-rules/current', {
+    method: 'GET',
+  });
+
+// Atualiza a quantidade de pontos por quilograma.
 const updatePointsPerKg = async (pointsPerKg) =>
   api('/admin/cashback-rules/points-per-kg', {
     method: 'PUT',
-    params: { newPointsPerKg: pointsPerKg },
+    params: {
+      newPointsPerKg: pointsPerKg,
+    },
   });
+
+// ==========================================
+// EXPORTAÇÃO DOS SERVIÇOS
+// ==========================================
 
 const cashbackService = {
   getBalance,
